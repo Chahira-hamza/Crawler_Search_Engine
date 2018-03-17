@@ -1,1 +1,14 @@
 
+Crawler.java:
+add your database name, username and password in the string Connection before main.
+remove or correctly change the package name to work on your project
+Pre-requisite:
+Docs_URL table created in ms sql - run the Docs_URL.sql in your database
+Output:
+10 html docs from the seed_ string in the project directory
+Error if more than 10: SocketTimeout - needs to be checked
+
+docs_url.sql:
+Docs_URL should be used with Crawler.java
+contains: ID, title and URLs
+
