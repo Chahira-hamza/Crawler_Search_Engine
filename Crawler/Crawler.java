@@ -14,7 +14,7 @@ public class Crawler {
 
     private static final String DBCLASSNAME = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
     private static final String CONNECTION =
-			"jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=Gam3aStuff*;";
+			"jdbc:sqlserver://localhost:1433;databaseName=;user=;password=;";
    
    
     
@@ -34,6 +34,7 @@ public class Crawler {
         // Insert seed into database
         String seed_ = "http://www.javatpoint.com/java-tutorial";
         Document doc = Jsoup.connect(seed_).get();
+        String title = doc.title();
         
         try {
             String check_id_seed = "Select ID from Docs_URL WHERE URL = '" + seed_ + "'" ;
@@ -46,7 +47,7 @@ public class Crawler {
         catch(SQLException sqle) 
         {
             System.out.println("Sql Exception :"+sqle.getMessage());
-            String insert_seed_query = "Insert into Docs_URL (URL) " + "Values ('" + seed_ + "')";
+            String insert_seed_query = "Insert into Docs_URL (Title,URL) " + "Values ('" + trim(title,50) + "','" + seed_ + "')";
             Statement st = con.createStatement();
             st.executeUpdate(insert_seed_query);
 
@@ -88,8 +89,10 @@ public class Crawler {
                 {
                     doc = Jsoup.connect(link.attr("abs:href")).get();
                     
+                    title = doc.title();
+                    //System.out.println(title);
                     print(" * a: <%s>  (%s)", link.attr("abs:href"), trim(link.text(), 35));
-                    String query = "Insert into Docs_URL (URL) " + "Values ('" + link.attr("abs:href")+ "')";
+                    String query = "Insert into Docs_URL (Title,URL) " + "Values ('" + trim(title,50) + "','" +link.attr("abs:href")+ "')";
                     Statement st_ = con.createStatement();
                     st_.executeUpdate(query);
 
