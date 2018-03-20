@@ -8,7 +8,7 @@ Add a folder "html_docs" in your local project directory
 Docs_URL table created in ms sql - run the Docs_URL.sql in your database ( ** check the updated schema !)
 
 Output:
-15 html docs from the seed_ string in html_docs folder in binary numbering
+html docs from the seed_ string in html_docs folder in binary numbering
 
 Error SocketTimeout - needs to be checked
 
