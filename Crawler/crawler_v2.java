@@ -52,10 +52,11 @@ public class crawler_v2 {
         // Insert seed into database
         String seed_ = "http://www.javatpoint.com/java-tutorial";
         Document doc = Jsoup.connect(seed_).get();
+        String title = doc.title();
         
         if (crawled_sites.add(seed_))
         {
-            String insert_seed_query = "Insert into Docs_URL (URL) " + "Values ('" + seed_ + "')";
+            String insert_seed_query = "Insert into Docs_URL (Title,URL) " + "Values ('" + trim(title,50) + "','" + seed_ + "')";
             Statement st = con.createStatement();
             st.executeUpdate(insert_seed_query);
 
@@ -84,48 +85,44 @@ public class crawler_v2 {
                 
         for (Element link : links) 
         {
-            if (crawled_sites.add(link.attr("abs:href")) && !status404_sites.contains(link.attr("abs:href")))
+            if (!crawled_sites.contains(link.attr("abs:href")) && !status404_sites.contains(link.attr("abs:href")))
             {
-                print(" * a: <%s>  (%s)", link.attr("abs:href"), trim(link.text(), 35));
-                String query = "Insert into Docs_URL (URL) " + "Values ('" + link.attr("abs:href")+ "')";
-                Statement st_ = con.createStatement();
-                st_.executeUpdate(query);
-               
-                query_ = "Select ID from Docs_URL WHERE URL = '" + link.attr("abs:href")+"' ";
-                st2 = con.createStatement();
-                rt2 = st2.executeQuery(query_);
-                rt2.next();
                 try
                 {
-                doc = Jsoup.connect(link.attr("abs:href")).get();
-                PrintWriter writer_ = new PrintWriter("html_docs/"+ Integer.toBinaryString(rt2.getInt(1)) +".html", "UTF-8");
-                writer_.print(doc);
-                writer_.close();
+                    doc = Jsoup.connect(link.attr("abs:href")).get();
+                    
+                    title = doc.title();
+                    System.out.println(title);
+                    
+                    crawled_sites.add(link.attr("abs:href"));
+                    print(" * a: <%s>  (%s)", link.attr("abs:href"), trim(link.text(), 35));
+                    String query = "Insert into Docs_URL (Title,URL) " + "Values ('" + trim(title,50) + "','" + link.attr("abs:href")+ "')";
+                    Statement st_ = con.createStatement();
+                    st_.executeUpdate(query);
+
+                    query_ = "Select count(URL) from Docs_URL;";
+                    st2 = con.createStatement();
+                    rt2 = st2.executeQuery(query_);
+                    rt2.next();
+                    
+                    PrintWriter writer_ = new PrintWriter("html_docs/"+ Integer.toBinaryString(rt2.getInt(1)) +".html", "UTF-8");
+                    writer_.print(doc);
+                    writer_.close();
+                    
+//                    if (rt2.getInt(1) == 65)
+//                    break;
+                    
                 }
                 catch (HttpStatusException http_e)
                 {
                     System.out.println("HTTP Status Exception:"+http_e.getMessage());
                     status404_sites.add(link.attr("abs:href"));
-                    crawled_sites.remove(link.attr("abs:href"));
-                    
-                    String query_remove = "DELETE from Docs_URL WHERE URL = '" + link.attr("abs:href")+"';";
-                    Statement remove = con.createStatement();
-                    remove.executeUpdate(query_remove);
+
                 }
                 catch (SocketTimeoutException se)
                 {
                     System.out.println("Socket Timeout Exception:"+se.getMessage());
-                    //status404_sites.add(link.attr("abs:href"));
-                    crawled_sites.remove(link.attr("abs:href"));
-                    
-                    String query_remove = "DELETE from Docs_URL WHERE URL = '" + link.attr("abs:href")+"';";
-                    Statement remove = con.createStatement();
-                    remove.executeUpdate(query_remove);
                 }
-
-                if (rt2.getInt(1) == 65)
-                    break;
-
             }
         }
 
