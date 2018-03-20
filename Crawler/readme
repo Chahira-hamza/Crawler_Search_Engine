@@ -10,8 +10,6 @@ Docs_URL table created in ms sql - run the Docs_URL.sql in your database ( ** ch
 Output:
 html docs from the seed_ string in html_docs folder in binary numbering
 
-Error SocketTimeout - needs to be checked
-
 docs_url.sql:
 Docs_URL should be used with Crawler.java
 contains: ID, title and URLs
