@@ -2,6 +2,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.HashMap;
 import java.util.List;
 import java.sql.*;
 import java.io.File;
@@ -32,6 +33,11 @@ public class SqlConnect {
 	    static Document doc ;
 	    static StopWords stopwords = null;
 	    static String s;
+	    static HashMap<String, Double> WDict = new HashMap<String, Double>();   //word Dictionary
+	    static ValueDict RankDict=null;
+	   
+	  
+	    
 	 
 	 
 	    public static  void ConnectToDB()
@@ -51,7 +57,7 @@ public class SqlConnect {
 		      
 		   
 	   }
-	   public static void main(String[] args) {  
+	    public static void main(String[] args) {  
             String title;
             
 //            boolean t =n.h.contains("an");
