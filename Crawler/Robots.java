@@ -25,8 +25,8 @@ public class Robots
                 if (scan.findInLine("Disallow: /") != null)
                 {
                    String str_exclude = scan.nextLine();
-                   System.out.print(str_exclude);
-                   Disallowed_URLS.add(str_exclude);
+                   System.out.print(url_tovisit +"/" + str_exclude);
+                   Disallowed_URLS.add(url_tovisit +"/" + str_exclude);
                 }
             }
             
