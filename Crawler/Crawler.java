@@ -2,6 +2,7 @@ package crawler;
 
 import java.sql.*; 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import org.jsoup.Jsoup;
 import org.jsoup.HttpStatusException;
 import org.jsoup.nodes.Document;
@@ -13,7 +14,7 @@ public class Crawler {
 
     private static final String DBCLASSNAME = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
     private static final String CONNECTION =
-			"jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=Gam3aStuff*;";
+			"jdbc:sqlserver://localhost:1433;databaseName=;user=;password=;";
    
    
     
@@ -65,9 +66,6 @@ public class Crawler {
         print("\nLinks: (%d)", links.size());
         
         
-        // Inserting urls into hyperlinks table in ms sql database
-        // creating html docs for the fetched urls - should not be done here
-        // error: java.net.SocketTimeoutException: Read timed out
         for (Element link : links) 
         {
             try
@@ -108,9 +106,16 @@ public class Crawler {
                     remove.executeUpdate(query_remove);
                     
                 }
+		catch (SocketTimeoutException se)
+                {
+                    System.out.println("Socket Timeout Exception:"+se.getMessage()); 
+                    String query_remove = "DELETE from Docs_URL WHERE URL = '" + link.attr("abs:href")+"';";
+                    Statement remove = con.createStatement();
+                    remove.executeUpdate(query_remove);
+                }
 
-//                if (rt2.getInt(1) == 65)
-//                    break;
+              if (rt2.getInt(1) == 65)
+		      break;
             }
         
         }
