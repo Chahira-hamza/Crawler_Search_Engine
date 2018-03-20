@@ -10,12 +10,13 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.*;
+import java.util.HashSet;
 
 public class Crawler {
 
     private static final String DBCLASSNAME = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
     private static final String CONNECTION =
-			"jdbc:sqlserver://localhost:1433;databaseName=;user=;password=;";
+			"jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=Gam3aStuff*;";
    
    
     
@@ -24,6 +25,9 @@ public class Crawler {
     String query_;
     Statement st2;
     ResultSet rt2;
+    
+    HashSet<String> crawled_sites = new HashSet<String>();
+    HashSet<String> status404_sites = new HashSet<String>();
     
     try{
         // DB Connection
@@ -35,31 +39,22 @@ public class Crawler {
         String seed_ = "http://www.javatpoint.com/java-tutorial";
         Document doc = Jsoup.connect(seed_).get();
         
-        try {
-        String check_id_seed = "Select ID from Docs_URL WHERE URL = '" + seed_ + "'" ;
-        Statement id_st_seed = con.createStatement();
-        ResultSet id_result_seed = id_st_seed.executeQuery(check_id_seed);
-        id_result_seed.next();
-        int temp_seed = id_result_seed.getInt(1);
-        
-        String insert_seed_query = "Insert into Docs_URL (URL) " + "Values ('" + seed_ + "')";
-        Statement st = con.createStatement();
-        st.executeUpdate(insert_seed_query);
-        
-        // creating html document named with corresponding id.html 
-        query_ = "Select ID from Docs_URL";
-        st2 = con.createStatement();
-        rt2 = st2.executeQuery(query_);
-        rt2.next();
-        PrintWriter writer = new PrintWriter("html_docs/"+ Integer.toBinaryString(rt2.getInt(1)) +".html", "UTF-8");
-        writer.print(doc);
-        writer.close();
-        
-        }
-        catch(SQLException sqle) 
+        if (crawled_sites.add(seed_))
         {
-            System.out.println("Sql Exception :"+sqle.getMessage());
+            String insert_seed_query = "Insert into Docs_URL (URL) " + "Values ('" + seed_ + "')";
+            Statement st = con.createStatement();
+            st.executeUpdate(insert_seed_query);
+
+            // creating html document named with corresponding id.html 
+            query_ = "Select ID from Docs_URL";
+            st2 = con.createStatement();
+            rt2 = st2.executeQuery(query_);
+            rt2.next();
+            PrintWriter writer = new PrintWriter("html_docs/"+ Integer.toBinaryString(rt2.getInt(1)) +".html", "UTF-8");
+            writer.print(doc);
+            writer.close();
         }
+        
        
         // if we will need to add title uncomment these and add query for it
 //        String title = doc.title();
@@ -72,77 +67,50 @@ public class Crawler {
         print("\nLinks: (%d)", links.size());
         
         // Inserting urls into hyperlinks table in ms sql database
+        
+        // creating html docs for the fetched urls - should not be done here
+        // error: java.net.SocketTimeoutException: Read timed out
+
+        // another error 404 Not found
+        /* Exception in thread "main" org.jsoup.HttpStatusException: HTTP error fetching URL. Status=404, URL=https://www.javatpoint.com/java-tutorial#java-applications
+        at org.jsoup.helper.HttpConnection$Response.execute(HttpConnection.java:537)
+        */ 
+                
         for (Element link : links) 
         {
-            try
+            if (crawled_sites.add(link.attr("abs:href")) && !status404_sites.contains(link.attr("abs:href")))
             {
-                String check_id = "Select ID from Docs_URL WHERE URL = '" + link.attr("abs:href") + "'" ;
-                Statement id_st = con.createStatement();
-                ResultSet id_result = id_st.executeQuery(check_id);
-                id_result.next();
-                int temp = id_result.getInt(1);
-                continue;
-                
-            }
-            catch(SQLException sqle) 
-            {
-                System.out.println("Sql Exception :"+sqle.getMessage());
-            }
-            
-            print(" * a: <%s>  (%s)", link.attr("abs:href"), trim(link.text(), 35));
-            String query = "Insert into Docs_URL (URL) " + "Values ('" + link.attr("abs:href")+ "')";
-            Statement st_ = con.createStatement();
-            try
-            {
-            st_.executeUpdate(query);
-            }
-            catch(SQLException sqle) {
-            System.out.println("Sql Exception :"+sqle.getMessage());
-            continue;
-            }
-            // creating html docs for the fetched urls - should not be done here
-            // error: java.net.SocketTimeoutException: Read timed out
-            
-            // another error 404 Not found
-            /* Exception in thread "main" org.jsoup.HttpStatusException: HTTP error fetching URL. Status=404, URL=https://www.javatpoint.com/java-tutorial#java-applications
-            at org.jsoup.helper.HttpConnection$Response.execute(HttpConnection.java:537)
-            */ 
-            query_ = "Select ID from Docs_URL WHERE URL = '" + link.attr("abs:href")+"' ";
-            st2 = con.createStatement();
-            rt2 = st2.executeQuery(query_);
-            rt2.next();
-            try
-            {
-            doc = Jsoup.connect(link.attr("abs:href")).get();
+                print(" * a: <%s>  (%s)", link.attr("abs:href"), trim(link.text(), 35));
+                String query = "Insert into Docs_URL (URL) " + "Values ('" + link.attr("abs:href")+ "')";
+                Statement st_ = con.createStatement();
+                st_.executeUpdate(query);
+               
+                query_ = "Select ID from Docs_URL WHERE URL = '" + link.attr("abs:href")+"' ";
+                st2 = con.createStatement();
+                rt2 = st2.executeQuery(query_);
+                rt2.next();
+                try
+                {
+                doc = Jsoup.connect(link.attr("abs:href")).get();
+                PrintWriter writer_ = new PrintWriter("html_docs/"+ Integer.toBinaryString(rt2.getInt(1)) +".html", "UTF-8");
+                writer_.print(doc);
+                writer_.close();
+                }
+                catch (HttpStatusException http_e)
+                {
+                    System.out.println("HTTP Status Exception:"+http_e.getMessage());
+                    status404_sites.add(link.attr("abs:href"));
+                    crawled_sites.remove(link.attr("abs:href"));
+                }
 
-            //System.out.println(Integer.toBinaryString(rt2.getInt(1)));
-            
-            PrintWriter writer_ = new PrintWriter("html_docs/"+ Integer.toBinaryString(rt2.getInt(1)) +".html", "UTF-8");
-            writer_.print(doc);
-            writer_.close();
+                if (rt2.getInt(1) == 105)
+                    break;
+
             }
-            catch (HttpStatusException http_e)
-            {
-                System.out.println("HTTP Status Exception:"+http_e.getMessage());
-            }
-            
-            if (rt2.getInt(1) == 16)
-                break;
         }
 
-        try {
-            
-//            String q2 = "Select * from hyperlinks";
-//            Statement st2_ = con.createStatement();
-//            ResultSet rt2_ = st2_.executeQuery(q2);
-        }
-
-        catch (Exception e)
-        {
-                System.err.println("Got an exception! ");
-                System.err.println(e.getMessage());
-        }
-
+        System.out.println(crawled_sites.size());
+        System.out.println(status404_sites.size());
         System.out.println("It works !");
         con.close();
 
