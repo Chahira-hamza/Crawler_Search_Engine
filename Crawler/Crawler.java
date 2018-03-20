@@ -2,19 +2,19 @@ package crawler;
 
 import java.sql.*; 
 import java.io.IOException;
-import java.net.SocketTimeoutException;
 import org.jsoup.Jsoup;
 import org.jsoup.HttpStatusException;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.*;
+import java.net.SocketTimeoutException;
 
 public class Crawler {
 
     private static final String DBCLASSNAME = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
     private static final String CONNECTION =
-			"jdbc:sqlserver://localhost:1433;databaseName=;user=;password=;";
+			"jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=Gam3aStuff*;";
    
    
     
@@ -66,6 +66,9 @@ public class Crawler {
         print("\nLinks: (%d)", links.size());
         
         
+        // Inserting urls into hyperlinks table in ms sql database
+        // creating html docs for the fetched urls - should not be done here
+        // error: java.net.SocketTimeoutException: Read timed out
         for (Element link : links) 
         {
             try
@@ -80,42 +83,37 @@ public class Crawler {
             }
             catch(SQLException sqle) 
             {
-                //System.out.println("Sql Exception :"+sqle.getMessage());
-                print(" * a: <%s>  (%s)", link.attr("abs:href"), trim(link.text(), 35));
-                String query = "Insert into Docs_URL (URL) " + "Values ('" + link.attr("abs:href")+ "')";
-                Statement st_ = con.createStatement();
-                st_.executeUpdate(query);
-                
-                query_ = "Select ID from Docs_URL WHERE URL = '" + link.attr("abs:href")+"';";
-                st2 = con.createStatement();
-                rt2 = st2.executeQuery(query_);
-                rt2.next();
+                //System.out.println("Sql Exception :"+sqle.getMessage());           
                 try
                 {
                     doc = Jsoup.connect(link.attr("abs:href")).get();
+                    
+                    print(" * a: <%s>  (%s)", link.attr("abs:href"), trim(link.text(), 35));
+                    String query = "Insert into Docs_URL (URL) " + "Values ('" + link.attr("abs:href")+ "')";
+                    Statement st_ = con.createStatement();
+                    st_.executeUpdate(query);
+
+                    query_ = "Select count(URL) from Docs_URL;";
+                    st2 = con.createStatement();
+                    rt2 = st2.executeQuery(query_);
+                    rt2.next();
+                    
                     PrintWriter writer_ = new PrintWriter("html_docs/"+ Integer.toBinaryString(rt2.getInt(1)) +".html", "UTF-8");
                     writer_.print(doc);
                     writer_.close();
+                    
+//                    if (rt2.getInt(1) == 65)
+//                        break;
                 }
                 catch (HttpStatusException http_e)
                 {
                     System.out.println("HTTP Status Exception:"+http_e.getMessage());
-                    // remove it from the database, it has no html document !
-                    String query_remove = "DELETE from Docs_URL WHERE URL = '" + link.attr("abs:href")+"';";
-                    Statement remove = con.createStatement();
-                    remove.executeUpdate(query_remove);
-                    
                 }
-		catch (SocketTimeoutException se)
+                catch (SocketTimeoutException se)
                 {
-                    System.out.println("Socket Timeout Exception:"+se.getMessage()); 
-                    String query_remove = "DELETE from Docs_URL WHERE URL = '" + link.attr("abs:href")+"';";
-                    Statement remove = con.createStatement();
-                    remove.executeUpdate(query_remove);
+                    System.out.println("Socket Timeout Exception:"+se.getMessage());
                 }
 
-              if (rt2.getInt(1) == 65)
-		      break;
             }
         
         }
