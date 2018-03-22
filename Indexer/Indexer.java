@@ -1,7 +1,3 @@
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -26,7 +22,8 @@ public class Indexer {
 	   // Declare the JDBC objects.  
 	    static Connection con = null;  
 	    static Statement stmt = null;  
-	    static ResultSet rs = null;  
+	    static ResultSet rs = null;
+	    static String t;
 	    static  String Driver="com.microsoft.sqlserver.jdbc.SQLServerDriver";
 	    static String Directory="E:\\Java\\APT_Project\\Docs";
 	    static Path folder = Paths.get(Directory);
@@ -40,91 +37,92 @@ public class Indexer {
 	   
 	 
 	 
-	  public static  void ConnectToDB()
-	   {
-		    try
-		    {
-		    	// Establish the connection.  
-		         Class.forName(Driver);  
-		         con = DriverManager.getConnection(connectionUrl);  
-		         System.out.println(" Connected to Database" );
-		     }
-		   
-		   catch (Exception e)
-		     {  
-		         e.printStackTrace();  
-		     }  
-		      
-		   
-	   }
-	  public static void GetTitle(Document doc)
-	  {	   	
-		  String s,w;
-		  Elements m ;
-		  
-		  String title = doc.title();
-		  System.out.println("-"+title+"_______");
-		  s=title;
+	    public static  void ConnectToDB()
+	    {
+	    	try
+	    	{
+	    		// Establish the connection.  
+	    		Class.forName(Driver);  
+	    		con = DriverManager.getConnection(connectionUrl);  
+	    		System.out.println(" Connected to Database" );
+	    	}
 
-		  String[] words=s.split("\\P{Alpha}+");
+	    	catch (Exception e)
+	    	{  
+	    		e.printStackTrace();  
+	    	}  
 
-		  for(String word : words)
-		  {
-			  w=word.toLowerCase(); 					// add  words in dictionary of doc 
-			  if(!(stopwords.h.contains(w)))
-			  { 
-				  System.out.println(w);
-				  if (!WDict.containsKey(w))
-				  {
-					  WDict.put(w,RankDict.VDict.get("title"));
-				  }
 
-				  else
-					  WDict.replace(w,WDict.get(w)+RankDict.VDict.get("<title>"));
+	    }
+	    public static void GetTitle(Document doc)
+	    {	   	
+	    	String s,w;
+	    	Elements m ;
 
-			  }
-		  }	
+	    	String title = doc.title();
+	    	System.out.println("-"+title+"_______");
+	    	s=title;
 
-		  m= doc.select("title").remove();
-	  }
-	
-	  
-	  public static void GetHeaders(Document doc) {
-		Elements h, m;
-		String n, w, s;
-		for (int i = 1; i < 7; i++) {
-			n = Integer.toString(i);
-			h = doc.getElementsByTag("h" + n);
-			System.out.println(h.toString());
+	    	String[] words=s.split("\\P{Alpha}+");
 
-			for (Element e : h) {
-				s = e.text();
-				String[] words1 = s.split("\\P{Alpha}+");
-				for (String word : words1) {
-					w = word.toLowerCase(); // add in dictinary of doc
-					if (!(stopwords.h.contains(w))) {
-						System.out.println(w);
-						if (!WDict.containsKey(w)) {
-							WDict.put(w, RankDict.VDict.get("h" + n));
-						}
+	    	for(String word : words)
+	    	{
+	    		w=word.toLowerCase(); 					// add  words in dictionary of doc 
+	    		if(!(stopwords.h.contains(w)))
+	    		{ 
+	    			System.out.println(w);
+	    			if (!WDict.containsKey(w))
+	    			{
+	    				WDict.put(w,RankDict.VDict.get("title"));
+	    			}
 
-						else
-							WDict.replace(w, WDict.get(w) + RankDict.VDict.get("h" + n));
+	    			else
+	    				WDict.replace(w,WDict.get(w)+RankDict.VDict.get("<title>"));
 
-					}
-					// System.out.println(word);
-				}
+	    		}
+	    	}	
 
-			}
-			m = doc.select("h" + n).remove();
-			String hh=m.text();
-			System.out.println("_______"+hh+"_______________");
+	    	m= doc.select("title").remove();
+	    }
 
-		}
+	    public static void GetHeaders(Document doc) 
+	    {
+	    	Elements h, m;
+	    	String n, w, s;
+	    	for (int i = 1; i < 7; i++) {
+	    		n = Integer.toString(i);
+	    		h = doc.getElementsByTag("h" + n);
+	    		System.out.println(h.toString());
 
-	}
-	  
-	public static void GetText(Document doc) {
+	    		for (Element e : h) {
+	    			s = e.text();
+	    			String[] words1 = s.split("\\P{Alpha}+");
+	    			for (String word : words1) {
+	    				w = word.toLowerCase(); // add in dictinary of doc
+	    				if (!(stopwords.h.contains(w))) {
+	    					System.out.println(w);
+	    					if (!WDict.containsKey(w)) {
+	    						WDict.put(w, RankDict.VDict.get("h" + n));
+	    					}
+
+	    					else
+	    						WDict.replace(w, WDict.get(w) + RankDict.VDict.get("h" + n));
+
+	    				}
+	    				// System.out.println(word);
+	    			}
+
+	    		}
+	    		m = doc.select("h" + n).remove();
+	    		String hh=m.text();
+	    		System.out.println("_______"+hh+"_______________");
+
+	    	}
+
+	    }
+
+	    public static void GetText(Document doc)
+	    {
 		String w;
 		String text = doc.text();
 		String[] words1 = text.split("\\P{Alpha}+");
@@ -146,11 +144,12 @@ public class Indexer {
 		}
 
 	}
-	    public static void main(String[] args) {  
+
+	    public static void main(String[] args) throws SQLException {  
             
 	    	try 
 	    	{  
-	    		//ConnectToDB();
+	    		ConnectToDB();
 
 	    		DirectoryStream<Path> stream = Files.newDirectoryStream(folder);
 	    		int i=1;
@@ -163,6 +162,9 @@ public class Indexer {
 
 
 	    			System.out.print(i+"-");
+	    			t=doc.text();
+	    			System.out.println(t);
+	    			System.out.println("_________________________________________");
 	    			GetTitle(doc);				//// extract title ///	
 	    			GetHeaders(doc);			//// extract headers ///
 	    			GetText(doc);
@@ -171,16 +173,24 @@ public class Indexer {
 	    			
 //	    			String t=doc.text();
 //	    			System.out.println(t);
+	    			 int rt2;
 //	    			
 	    			System.out.println("__________________________");	
+	    			
+	    			
+
+			    	 
+				      //rs= stmt.executeQuery(SQL); 
 	    			i++;
+	    			//String SQL = "INSERT INTO DocText (Doc_ID,Dtext)  "+ " VALUES  ('" + 2 + "','" + t +"')";
+	    			String SQL="DELETE FROM DocText";
+			    	 stmt = con.createStatement(); 
+			    	 stmt.executeUpdate(SQL);
 
 	    		}
 
 
-	    		//				    	 String SQL = "DELETE  FROM Docs"; 
-	    		//				    	 stmt = con.createStatement();  
-	    		//				        // rs= stmt.executeQuery(SQL); 
+	    				    	
 	    		//				    	 
 	    		// for deletion 
 	    		//				    	 stmt.executeUpdate(SQL);
@@ -216,17 +226,19 @@ public class Indexer {
 	    	// Handle any errors that may have occurred.  
 	    	catch (Exception e)
 	    	{  
+	    		
+	    		 
 	    		e.printStackTrace(); 
-
+	    		
 
 	    	}  
 
 
 	    	finally 
 	    	{  
-	    		//	         if (rs != null) try { rs.close(); } catch(Exception e) {}  
-	    		//	         if (stmt != null) try { stmt.close(); } catch(Exception e) {}  
-	    		//	         if (con != null) try { con.close(); } catch(Exception e) {}  
+	    		         if (rs != null) try { rs.close(); } catch(Exception e) {}  
+	    		         if (stmt != null) try { stmt.close(); } catch(Exception e) {}  
+	    			      if (con != null) try { con.close(); } catch(Exception e) {}  
 	    	}  
 	    }  
 
