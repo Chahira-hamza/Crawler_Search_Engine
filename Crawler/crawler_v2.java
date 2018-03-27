@@ -11,12 +11,14 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.*;
 import java.util.HashSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class crawler_v2 {
 
     private static final String DBCLASSNAME = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
     private static final String CONNECTION =
-			"jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=Gam3aStuff*;";
+			"jdbc:sqlserver://localhost:1433;databaseName=;user=sa;password=;";
    
    
     
@@ -50,13 +52,21 @@ public class crawler_v2 {
         
         
         // Insert seed into database
-        String seed_ = "http://www.javatpoint.com/java-tutorial";
+        String seed_ = "https://www.javatpoint.com/java-tutorial";
         Document doc = Jsoup.connect(seed_).get();
         String title = doc.title();
         
-        if (crawled_sites.add(seed_))
+        Pattern pattseed = Pattern.compile("http(s)?://(www\\.)?");
+        Matcher matchseed = pattseed.matcher(seed_);
+        String resultseed = seed_;
+        if (matchseed.find())
         {
-            String insert_seed_query = "Insert into Docs_URL (Title,URL) " + "Values ('" + trim(title,50) + "','" + seed_ + "')";
+           resultseed = seed_.replaceFirst(matchseed.group(0),"");
+        }
+        
+        if (crawled_sites.add(resultseed))
+        {
+            String insert_seed_query = "Insert into Docs_URL (Title,Protocol,URL) " + "Values ('" + trim(title,50) + "','" + matchseed.group(0) + "','" + seed_ + "')";
             Statement st = con.createStatement();
             st.executeUpdate(insert_seed_query);
 
@@ -70,33 +80,47 @@ public class crawler_v2 {
             writer.close();
         }
         
-       
-        // if we will need to add title uncomment these and add query for it
-//        String title = doc.title();
-//        System.out.println(title);
-        
-
         // printing links size  and imports - not important
         Elements links = doc.select("a[href]");
         System.out.println("imports = "+ links.size());
         print("\nLinks: (%d)", links.size());
         
         // Inserting urls into hyperlinks table in ms sql database
-                
+        int count = 0;
+        
         for (Element link : links) 
         {
-            if (!crawled_sites.contains(link.attr("abs:href")) && !status404_sites.contains(link.attr("abs:href")))
+            String filteredlink,protocol;
+            Pattern patt = Pattern.compile("http(s)?://(www\\.)?");
+            Matcher match = patt.matcher(link.attr("abs:href"));
+            if (match.find())
+            {
+                protocol = match.group(0);
+                filteredlink = link.attr("abs:href").replaceFirst(match.group(0),"");
+
+            if (!crawled_sites.contains(filteredlink) && !status404_sites.contains(filteredlink))
             {
                 try
                 {
                     doc = Jsoup.connect(link.attr("abs:href")).get();
                     
                     title = doc.title();
-                    System.out.println(title);
+                    //System.out.println(title);
                     
-                    crawled_sites.add(link.attr("abs:href"));
+                    // check if it redirects to the same page
+                    patt = Pattern.compile("#");
+                    match = patt.matcher(link.attr("abs:href"));
+
+                    if (match.find())
+                    {
+                        count ++;
+                        System.out.println("# found count = " + count);
+                        continue;
+                    }
+
+                    crawled_sites.add(filteredlink);
                     print(" * a: <%s>  (%s)", link.attr("abs:href"), trim(link.text(), 35));
-                    String query = "Insert into Docs_URL (Title,URL) " + "Values ('" + trim(title,50) + "','" + link.attr("abs:href")+ "')";
+                    String query = "Insert into Docs_URL (Title,Protocol,URL) " + "Values ('" + trim(title,50) + "','" + protocol + "','" + filteredlink+ "')";
                     Statement st_ = con.createStatement();
                     st_.executeUpdate(query);
 
@@ -109,14 +133,14 @@ public class crawler_v2 {
                     writer_.print(doc);
                     writer_.close();
                     
-//                    if (rt2.getInt(1) == 65)
-//                    break;
+                    if (rt2.getInt(1) == 15)
+                    break;
                     
                 }
                 catch (HttpStatusException http_e)
                 {
                     System.out.println("HTTP Status Exception:"+http_e.getMessage());
-                    status404_sites.add(link.attr("abs:href"));
+                    status404_sites.add(filteredlink);
 
                 }
                 catch (SocketTimeoutException se)
@@ -124,6 +148,7 @@ public class crawler_v2 {
                     System.out.println("Socket Timeout Exception:"+se.getMessage());
                 }
             }
+        }
         }
 
         System.out.println(crawled_sites.size());
