@@ -1,6 +1,7 @@
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.sql.*;
 import java.io.File;
 import java.io.IOException;
@@ -23,7 +24,8 @@ public class Indexer {
 	    static Connection con = null;  
 	    static Statement stmt = null;  
 	    static ResultSet rs = null;
-	    static String t;
+	    static String Doc_Text;
+	    static int Doc_ID;
 	    static  String Driver="com.microsoft.sqlserver.jdbc.SQLServerDriver";
 	    static String Directory="E:\\Java\\APT_Project\\Docs";
 	    static Path folder = Paths.get(Directory);
@@ -33,7 +35,7 @@ public class Indexer {
 	    static  ValueDict RankDict = null;
 	    static  HashMap<String, Double> WDict = new HashMap<String, Double>();   //word Dictionary;
 	    static Element others;
-
+	    static  String dbName="Indexer";
 	   
 	 
 	 
@@ -54,6 +56,85 @@ public class Indexer {
 
 
 	    }
+
+	    public static void InsertWords(HashMap<String, Double> W , int DocID) throws SQLException {
+
+		PreparedStatement WordStmt = null;
+
+		String Insert_Words = "INSERT INTO Words (Doc_ID,word,Rankw)  VALUES  (?,?,?)";
+
+		try {
+			con.setAutoCommit(false);
+		
+			WordStmt = con.prepareStatement(Insert_Words);
+
+			for (Map.Entry<String, Double> e : W.entrySet()) {
+				WordStmt.setLong(1, DocID);
+				WordStmt.setString(2, e.getKey());
+				WordStmt.setLong(3, e.getValue().intValue());
+				WordStmt.executeUpdate();
+				con.commit();
+			}
+		} catch (SQLException e) {
+			
+			System.out.println("Sql Exception :" + e.getMessage());
+			if (con != null) {
+				try {
+					System.err.print("Transaction is being rolled back");
+					con.rollback();
+				} catch (SQLException excep) {
+
+					System.out.println("Sql Exception :" + e.getMessage());
+				}
+			}
+		}
+
+		finally {
+			if (WordStmt != null) {
+				WordStmt.close();
+			}
+
+			con.setAutoCommit(true);
+		}
+	}
+	    
+		public static void InsertText(String text, int DocID) throws SQLException {
+		PreparedStatement TextStmt = null;
+		String Insert_Text = "INSERT INTO DocText (Doc_ID,Dtext)  VALUES  (?,? )";
+
+		try {
+			con.setAutoCommit(false);
+			TextStmt = con.prepareStatement(Insert_Text);
+			TextStmt.setLong(1, DocID);
+			TextStmt.setString(2, text.toLowerCase());
+			TextStmt.executeUpdate();
+			con.commit();
+
+		}
+
+		catch (SQLException e) {
+			
+			System.out.println("Sql Exception :" + e.getMessage());
+			if (con != null) {
+				try {
+					System.err.print("Transaction is being rolled back");
+					con.rollback();												// free the resoource
+				} catch (SQLException excep) {
+
+					System.out.println("Sql Exception :" + e.getMessage());
+				}
+			}
+		}
+
+		finally {
+			if (TextStmt != null) {
+				TextStmt.close();
+			}
+
+			con.setAutoCommit(true);
+		}
+
+	}
 	    public static void GetTitle(Document doc)
 	    {	   	
 	    	String s,w;
@@ -77,7 +158,7 @@ public class Indexer {
 	    			}
 
 	    			else
-	    				WDict.replace(w,WDict.get(w)+RankDict.VDict.get("<title>"));
+	    				WDict.replace(w,WDict.get(w)+RankDict.VDict.get("title"));
 
 	    		}
 	    	}	
@@ -92,13 +173,13 @@ public class Indexer {
 	    	for (int i = 1; i < 7; i++) {
 	    		n = Integer.toString(i);
 	    		h = doc.getElementsByTag("h" + n);
-	    		System.out.println(h.toString());
+	    		//System.out.println(h.toString());
 
 	    		for (Element e : h) {
 	    			s = e.text();
 	    			String[] words1 = s.split("\\P{Alpha}+");
 	    			for (String word : words1) {
-	    				w = word.toLowerCase(); // add in dictinary of doc
+	    				w = word.toLowerCase();							 // add in dictinary of doc
 	    				if (!(stopwords.h.contains(w))) {
 	    					System.out.println(w);
 	    					if (!WDict.containsKey(w)) {
@@ -159,45 +240,65 @@ public class Indexer {
 	    			filename=entry.getFileName().toString();
 	    			File input = new File("E:\\Java\\APT_Project\\Docs\\"+filename);
 	    			doc= Jsoup.parse(input,"utf-8");
-
-
-	    			System.out.print(i+"-");
-	    			t=doc.text();
+	    			
+	    			String f=filename.replaceAll("\\D+","");  								 // regex delete non digits
+	    			Doc_ID=Integer.parseInt(f, 2);
+	    			
+	    			System.out.println(Doc_ID);
+	    			System.out.println(i+"-");
+	    			
+	    			String t = doc.text();
 	    			System.out.println(t);
+	    			
 	    			System.out.println("_________________________________________");
+	    			
+	    			
+	    			
 	    			GetTitle(doc);				//// extract title ///	
 	    			GetHeaders(doc);			//// extract headers ///
 	    			GetText(doc);
-	    			 			
-	    			//System.out.println(hh);
-	    			
-//	    			String t=doc.text();
-//	    			System.out.println(t);
-	    			 int rt2;
-//	    			
+
+	    		    			
 	    			System.out.println("__________________________");	
 	    			
 	    			
+	    			
 
-			    	 
-				      //rs= stmt.executeQuery(SQL); 
-	    			i++;
-	    			//String SQL = "INSERT INTO DocText (Doc_ID,Dtext)  "+ " VALUES  ('" + 2 + "','" + t +"')";
-	    			String SQL="DELETE FROM DocText";
-			    	 stmt = con.createStatement(); 
-			    	 stmt.executeUpdate(SQL);
+	    			//rs= stmt.executeQuery(SQL); 
+
+	    			// String SQL = "INSERT INTO DocText (Doc_ID,Dtext)  "+ " VALUES  ('"  +1+  "','" + t +"')";
+	    			//String SQL="DELETE FROM Docs_URL";
+	    			//String SQL = "INSERT INTO DocText (Doc_ID,Dtext)    VALUES (?, ?")";
+	    			//stmt = con.createStatement(); 
+	    			//	    			PreparedStatement sql= con.prepareStatement( "INSERT INTO DocText (Doc_ID,Dtext)  VALUES  (?,?  )");
+	    			//	    			sql.setLong(1, 2);
+	    			//	    			sql.setString(2, t.toLowerCase());
+	    			//			    	sql.executeUpdate();
+	    			System.out.println("sucess text ?????????????????????????????????????");
+			    	
+	    			
+			    	InsertWords(WDict,Doc_ID);
+			    	InsertText(t,Doc_ID);
+			    	i++;
+			    	
+			    	Iterator<String> itr = WDict.keySet().iterator();
+		    		Iterator<Double> itr2 = WDict.values().iterator();
+
+		    		while (itr.hasNext())
+		    		{
+		    			System.out.print(itr.next());
+		    			System.out.print("  ");
+		    			System.out.println(itr2.next());
+
+		    		}
+		    		
+		    		WDict.clear();
+			    	
 
 	    		}
 
 
-	    				    	
-	    		//				    	 
-	    		// for deletion 
-	    		//				    	 stmt.executeUpdate(SQL);
-
-
-
-
+	    	
 	    		// Create and execute an SQL statement that returns some data.  
 	    		// String SQL = "SELECT Title  FROM Docs";  
 
@@ -208,16 +309,7 @@ public class Indexer {
 	    		//	         	}  
 	    		stream.close();
 
-	    		Iterator<String> itr = WDict.keySet().iterator();
-	    		Iterator<Double> itr2 = WDict.values().iterator();
-
-	    		while (itr.hasNext())
-	    		{
-	    			System.out.print(itr.next());
-	    			System.out.print("  ");
-	    			System.out.println(itr2.next());
-
-	    		}
+	    		
 	    	}  
 
 
