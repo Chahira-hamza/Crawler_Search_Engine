@@ -1,16 +1,21 @@
 
 package crawler;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Scanner;
+import java.util.*;
 
-
-public class Robots throws Exception
+public class Robots
 {
-	ArrayList Disallowed_URLS;
+    ArrayList Disallowed_URLS;
     ArrayList Allowed_URLS;
+
+    public static void main(String[] args) throws Exception {
+        Robots RFile = new Robots();
+    }
 
     public Robots() throws Exception{
         Disallowed_URLS = new ArrayList();
@@ -33,7 +38,6 @@ public class Robots throws Exception
             if (Rcode == 200)
             {
                 BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
-                //Scanner scan = new Scanner(url.openStream());
                 String line = null;
 
                 while((line = in.readLine()) != null ) {
@@ -47,23 +51,15 @@ public class Robots throws Exception
                         }
                     }
                     else {
-                        try {
-                            isUA = true;
-                            if (line.isEmpty()) {
-                                break;
-                            }
-                            if (line.toLowerCase().startsWith("disallow:")) {
-                                System.out.println(line);
-                                Disallowed_URLS.add(url_tovisit + line.substring(10));
-                            } else if (line.toLowerCase().startsWith("allow:")) {
-                                Allowed_URLS.add(url_tovisit + line.substring(7));
-                            }
+                        isUA = true;
+                        if (line.isEmpty()) {
+                            break;
                         }
-                        catch (NullPointerException e)
-                        {
-
+                        if (line.toLowerCase().startsWith("disallow:")) {
+                            Disallowed_URLS.add(url_tovisit + line.substring(10));
+                        } else if (line.toLowerCase().startsWith("allow:")) {
+                            Allowed_URLS.add(url_tovisit + line.substring(7));
                         }
-                        //System.out.println(line.substring(10));
                     }
                 }
             }
@@ -72,25 +68,17 @@ public class Robots throws Exception
                 System.out.println("Can't find robot.txt");
             }
 
-            try {
-                for (int i = 0; i < Disallowed_URLS.size(); i++) {
-                    System.out.println(Disallowed_URLS.get(i));
-                }
-            }
-            catch (NullPointerException e)
-            {
-
+            for (int i = 0; i < Disallowed_URLS.size(); i++) {
+                System.out.println(Disallowed_URLS.get(i));
             }
         }
+
         catch(MalformedURLException e)
         {
 
         }
     }
-
-    public static void main(String[] args) throws Exception {
-        Robots bla = new Robots();
-    }
+}
 	/*
     ArrayList Disallowed_URLS;
 
@@ -124,4 +112,3 @@ public class Robots throws Exception
         Parse_Robots("https://www.youtube.com/");
     }
 */
-}
