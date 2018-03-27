@@ -7,19 +7,98 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 
-public class Robots 
-{   
-    ArrayList Disallowed_URLS;
-    
+public class Robots throws Exception
+{
+	
+	       Parse_Robots("https://www.google.com/"); //Problem with twitter
+        Disallowed_URLS = new ArrayList();
+        Allowed_URLS = new ArrayList();
+    }
+
     public void Parse_Robots(String url_tovisit) throws Exception
     {
         String url_robots = url_tovisit + "/robots.txt";
-        
+
+        try
+        {
+            URL url = new URL(url_robots);
+            HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+            int Rcode = connection.getResponseCode();
+            boolean isUA = false;
+
+            if (Rcode == 200)
+            {
+                BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+                //Scanner scan = new Scanner(url.openStream());
+                String line = null;
+
+                while((line = in.readLine()) != null ) {
+                    if (line.startsWith("#")) {
+                        continue;
+                    }
+                    if (!line.toLowerCase().startsWith("user-agent: *") && isUA == false) {
+                        while (in.readLine().isEmpty() == false)
+                        {
+                            continue;
+                        }
+                    }
+                    else {
+                        try {
+                            isUA = true;
+                            if (line.isEmpty()) {
+                                break;
+                            }
+                            if (line.toLowerCase().startsWith("disallow:")) {
+                                System.out.println(line);
+                                Disallowed_URLS.add(url_tovisit + line.substring(10));
+                            } else if (line.toLowerCase().startsWith("allow:")) {
+                                Allowed_URLS.add(url_tovisit + line.substring(7));
+                            }
+                        }
+                        catch (NullPointerException e)
+                        {
+
+                        }
+                        //System.out.println(line.substring(10));
+                    }
+                }
+            }
+            else
+            {
+                System.out.println("Can't find robot.txt");
+            }
+
+            try {
+                for (int i = 0; i < Disallowed_URLS.size(); i++) {
+                    System.out.println(Disallowed_URLS.get(i));
+                }
+            }
+            catch (NullPointerException e)
+            {
+
+            }
+        }
+        catch(MalformedURLException e)
+        {
+
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        Robots bla = new Robots();
+    }
+	/*
+    ArrayList Disallowed_URLS;
+
+    public void Parse_Robots(String url_tovisit) throws Exception
+    {
+        String url_robots = url_tovisit + "/robots.txt";
+
         try
         {
             URL url_ = new URL(url_robots);
             Scanner scan = new Scanner(url_.openStream());
-            
+
             while (scan.findInLine("User-agent: *") != null)
             {
                 if (scan.findInLine("Disallow: /") != null)
@@ -29,12 +108,16 @@ public class Robots
                    Disallowed_URLS.add(url_tovisit +"/" + str_exclude);
                 }
             }
-            
+
         }
         catch(MalformedURLException e)
         {
-            
+
         }
     }
-    
+
+    public static void main(String[] args) {
+        Parse_Robots("https://www.youtube.com/");
+    }
+*/
 }
