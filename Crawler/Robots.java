@@ -9,10 +9,14 @@ import java.util.Scanner;
 
 public class Robots throws Exception
 {
-	
-	       Parse_Robots("https://www.google.com/"); //Problem with twitter
+	ArrayList Disallowed_URLS;
+    ArrayList Allowed_URLS;
+
+    public Robots() throws Exception{
         Disallowed_URLS = new ArrayList();
         Allowed_URLS = new ArrayList();
+        Parse_Robots("https://www.google.com/"); //Problem with twitter
+
     }
 
     public void Parse_Robots(String url_tovisit) throws Exception
