@@ -21,7 +21,7 @@ public class crawler_v2 {
 
     private static final String DBCLASSNAME = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
     private static final String CONNECTION =
-			"jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=Gam3aStuff*;";
+			"jdbc:sqlserver://localhost:1433;databaseName=;user=;password=;";
     private static Connection con;
    
     private static HashMap<String,String> crawled_sites;
