@@ -36,8 +36,10 @@ public class Indexer {
 	    static  HashMap<String, Double> WDict = new HashMap<String, Double>();   //word Dictionary;
 	    static Element others;
 	    static  String dbName="Indexer";
+	    static 	Stemmer stemmer=new Stemmer();
+	    static String root;
+	    static int position ;
 	   
-	 
 	 
 	    public static  void ConnectToDB()
 	    {
@@ -135,8 +137,38 @@ public class Indexer {
 		}
 
 	}
+
+		public static void GetKeyWords(Document doc)  {
+
+		String keywords = doc.select("meta[name=keywords]").attr("content");
+		if (keywords != null) {
+			System.out.println("keywords= " + keywords);
+			String[] words = keywords.split("\\P{Alpha}+");
+			String w;
+
+			for (String word : words) 
+			{
+				w = word.toLowerCase(); // add words in dictionary of doc
+				root=stemmer.stem(w);
+				if (!(stopwords.h.contains(root)))
+				{
+					 System.out.println(root);
+					if (!WDict.containsKey(root))
+					{
+						WDict.put(root, RankDict.VDict.get("keyword"));
+					}
+
+					else
+						WDict.replace(root, WDict.get(root) + RankDict.VDict.get("keyword"));
+
+				}
+			}
+		}
+
+	}
+		
 	    public static void GetTitle(Document doc)
-	    {	   	
+	    {	   
 	    	String s,w;
 	    	Elements m ;
 
@@ -149,16 +181,17 @@ public class Indexer {
 	    	for(String word : words)
 	    	{
 	    		w=word.toLowerCase(); 					// add  words in dictionary of doc 
-	    		if(!(stopwords.h.contains(w)))
+	    		root=stemmer.stem(w);
+	    		if(!(stopwords.h.contains(root)))
 	    		{ 
-	    			System.out.println(w);
-	    			if (!WDict.containsKey(w))
+	    			System.out.println(root);
+	    			if (!WDict.containsKey(root))
 	    			{
-	    				WDict.put(w,RankDict.VDict.get("title"));
+	    				WDict.put(root,RankDict.VDict.get("title"));
 	    			}
 
 	    			else
-	    				WDict.replace(w,WDict.get(w)+RankDict.VDict.get("title"));
+	    				WDict.replace(root,WDict.get(root)+RankDict.VDict.get("title"));
 
 	    		}
 	    	}	
@@ -170,6 +203,7 @@ public class Indexer {
 	    {
 	    	Elements h, m;
 	    	String n, w, s;
+	    	int pos;
 	    	for (int i = 1; i < 7; i++) {
 	    		n = Integer.toString(i);
 	    		h = doc.getElementsByTag("h" + n);
@@ -180,14 +214,15 @@ public class Indexer {
 	    			String[] words1 = s.split("\\P{Alpha}+");
 	    			for (String word : words1) {
 	    				w = word.toLowerCase();							 // add in dictinary of doc
-	    				if (!(stopwords.h.contains(w))) {
-	    					System.out.println(w);
-	    					if (!WDict.containsKey(w)) {
-	    						WDict.put(w, RankDict.VDict.get("h" + n));
+	    				root=stemmer.stem(w);
+	    				if (!(stopwords.h.contains(root))) {
+	    					System.out.println(root);
+	    					if (!WDict.containsKey(root)) {
+	    						WDict.put(root, RankDict.VDict.get("h" + n));
 	    					}
 
 	    					else
-	    						WDict.replace(w, WDict.get(w) + RankDict.VDict.get("h" + n));
+	    						WDict.replace(root, WDict.get(root) + RankDict.VDict.get("h" + n));
 
 	    				}
 	    				// System.out.println(word);
@@ -230,7 +265,7 @@ public class Indexer {
             
 	    	try 
 	    	{  
-	    		ConnectToDB();
+	    		//ConnectToDB();
 
 	    		DirectoryStream<Path> stream = Files.newDirectoryStream(folder);
 	    		int i=1;
@@ -244,11 +279,11 @@ public class Indexer {
 	    			String f=filename.replaceAll("\\D+","");  								 // regex delete non digits
 	    			Doc_ID=Integer.parseInt(f, 2);
 	    			
-	    			System.out.println(Doc_ID);
-	    			System.out.println(i+"-");
+	    			System.out.println("Doument ID : "+Doc_ID);
+	    			System.out.println("loop #"+i+"-");
 	    			
-	    			String t = doc.text();
-	    			System.out.println(t);
+//	    			String t = doc.text();
+//	    			System.out.println(t);
 	    			
 	    			System.out.println("_________________________________________");
 	    			
@@ -258,7 +293,7 @@ public class Indexer {
 	    			GetHeaders(doc);			//// extract headers ///
 	    			GetText(doc);
 
-	    		    			
+	    			//GetKeyWords(doc);	
 	    			System.out.println("__________________________");	
 	    			
 	    			
@@ -276,9 +311,9 @@ public class Indexer {
 	    			//			    	sql.executeUpdate();
 	    			System.out.println("sucess text ?????????????????????????????????????");
 			    	
-	    			
-			    	InsertWords(WDict,Doc_ID);
-			    	InsertText(t,Doc_ID);
+//	    			
+//			    	InsertWords(WDict,Doc_ID);
+//			    	InsertText(t,Doc_ID);
 			    	i++;
 			    	
 			    	Iterator<String> itr = WDict.keySet().iterator();
