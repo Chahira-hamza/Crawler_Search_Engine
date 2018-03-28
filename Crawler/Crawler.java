@@ -28,6 +28,7 @@ public class crawler_v2 {
     private  static HashMap<String,String> extracted_sites;
     private  static HashSet<String> status404_sites;
     private  static ArrayList<String> seedlist;
+	private static int CrawledMax;
    
     public static void main(String[] args) throws Exception {
  
@@ -38,8 +39,9 @@ public class crawler_v2 {
         
         crawler.crawlAll();
       
-        System.out.println(crawled_sites.size());
-        System.out.println(extracted_sites.size());
+        System.out.println("Crawled sites(Downloaded) = " + crawled_sites.size());
+        System.out.println("Extracted sites = " + extracted_sites.size());
+	System.out.println("status404_sites = " + status404_sites.size());
         System.out.println("It works !");
         con.close();
 
@@ -66,6 +68,7 @@ public crawler_v2() throws Exception
      status404_sites = new HashSet<>();
      seedlist = new ArrayList<>();
 
+	CrawledMax = 60;	
      //loadSeedlist();
      
      loadStatefromDB();
@@ -75,13 +78,8 @@ public crawler_v2() throws Exception
 
 public void crawlAll()
 {
-    while( crawled_sites.size() < 60 && !extracted_sites.isEmpty())
+    while( crawled_sites.size() < CrawledMax && !extracted_sites.isEmpty())
     {
-        if (crawled_sites.size() == 57)
-        {
-            System.out.print("58");
-
-        }
         try
         {
            for (Map.Entry<String, String> entry : extracted_sites.entrySet())
@@ -100,7 +98,7 @@ public void crawlAll()
         }
         catch(Exception e)
         {
-            System.out.println("Exception in crawlall: "+ e.getMessage() );
+            System.out.println("Exception in crawlAll: "+ e.getMessage() );
         }
     }
 
@@ -108,12 +106,19 @@ public void crawlAll()
 
 private  void crawlSingle(String url) throws Exception
 {
+	String urlarr[] = new String[2];
     try
     {
         Document doc = jsoupConnect(url);
-        putinCrawled(url);
-        removefromExtracted(url); 
-        updateDB(url,doc,1);
+        
+    	urlarr[0] = url;
+    	splitUrlfromProtocol(urlarr);
+	System.Out.println("Protocol = " + urlarr[0] + "url = " + urlarr[1]);    
+	
+	putinCrawled(urlarr);
+        removefromExtracted(urlarr); 
+        
+	updateDB(url,doc,1);
         downloadHtml(doc,url);
         Elements links = extractLinks(doc);
 
@@ -283,11 +288,8 @@ private static int getUrlId(String url) throws Exception
 }
 
 
-private void removefromExtracted(String url)
+private void removefromExtracted(String[] urlarr)
 {
-    String urlarr[] = new String[2];
-    urlarr[0] = url;
-    splitUrlfromProtocol(urlarr);
     // synchronize the following
     extracted_sites.remove(urlarr[0]);
 }
@@ -307,11 +309,8 @@ private void putinExtractedUrlandProtocol(String url, String protocol)
     extracted_sites.put(url, protocol);
 }
 
-private void putinCrawled(String url)
+private void putinCrawled(String[] urlarr)
 {
-    String urlarr[] = new String[2];
-    urlarr[0] = url;
-    splitUrlfromProtocol(urlarr);
     // synchronize the following
     putinCrawledUrlandProtocol(urlarr[0],urlarr[1]);
 }
