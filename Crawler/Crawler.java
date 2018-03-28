@@ -24,21 +24,20 @@ public class crawler_v2 {
 			"jdbc:sqlserver://localhost:1433;databaseName=;user=;password=;";
     private static Connection con;
    
-    private static HashMap<String,String> crawled_sites;
-    private static HashMap<String,String> extracted_sites;
-    private static HashSet<String> status404_sites;
-    private static ArrayList<String> seedlist;
+    private  static HashMap<String,String> crawled_sites;
+    private  static HashMap<String,String> extracted_sites;
+    private  static HashSet<String> status404_sites;
+    private  static ArrayList<String> seedlist;
    
-   // private static int downloadedcount;
-    
-    public static void main(String[] args) throws SQLException, ClassNotFoundException, IOException {
+    public static void main(String[] args) throws Exception {
  
-    System.out.println("From Crawler version 2 HashSets!");  
- 
+    System.out.println("From Crawler version 2 HashSets!");   
     try{
-        // Insert seed into database
-        String seed_ = "https://www.javatpoint.com/java-tutorial";
-
+        
+        crawler_v2  crawler = new crawler_v2();
+        
+        crawler.crawlAll();
+      
         System.out.println(crawled_sites.size());
         System.out.println(extracted_sites.size());
         System.out.println("It works !");
@@ -47,7 +46,7 @@ public class crawler_v2 {
     }
     catch (Exception e)
     {
-        
+        System.out.println("Exception "+e.getMessage());
     }
  }
     
@@ -58,14 +57,85 @@ Constructor
 Calls connecttoDatabase, throws exception if connection fails
 Initializes static variables declared 
 */
-crawler_v2() throws Exception
+public crawler_v2() throws Exception
 { 
      con = connecttoDB();
 
-     HashMap<String,String> crawled_sites = new HashMap<String,String>();
-     HashMap<String,String> extracted_sites = new HashMap<String,String>();
-     HashSet<String> status404_sites = new HashSet<String>();
-     ArrayList<String> seedlist = new ArrayList<String>();
+     crawled_sites = new HashMap<>();
+     extracted_sites = new HashMap<>();
+     status404_sites = new HashSet<>();
+     seedlist = new ArrayList<>();
+
+     //loadSeedlist();
+     
+     loadStatefromDB();
+}
+
+
+
+public void crawlAll()
+{
+    while( crawled_sites.size() < 60 && !extracted_sites.isEmpty())
+    {
+        if (crawled_sites.size() == 57)
+        {
+            System.out.print("58");
+
+        }
+        try
+        {
+           for (Map.Entry<String, String> entry : extracted_sites.entrySet())
+           {
+               System.out.println(status404_sites.size());
+                           
+               if (entry.getValue() == null)
+                   continue;
+               
+               System.out.println("from map");
+               System.out.println("entry:" + entry.getKey());
+               crawlSingle(entry.getValue() + entry.getKey());
+               System.out.println("after crawl all entry:" + entry.getKey());
+               
+           }
+        }
+        catch(Exception e)
+        {
+            System.out.println("Exception in crawlall: "+ e.getMessage() );
+        }
+    }
+
+}
+
+private  void crawlSingle(String url) throws Exception
+{
+    try
+    {
+        Document doc = jsoupConnect(url);
+        putinCrawled(url);
+        removefromExtracted(url); 
+        updateDB(url,doc,1);
+        downloadHtml(doc,url);
+        Elements links = extractLinks(doc);
+
+        System.out.println(extracted_sites.size());
+        for (Element link : links)
+        {
+            if (isUrlValid(link.attr("abs:href")))
+            {
+                putinExtracted(link.attr("abs:href"));
+                print(" * a: <%s>  (%s)", link.attr("abs:href"), trim(link.text(), 35));
+                insertExtractedUrlinDB(link.attr("abs:href"));
+            }
+            else
+                continue;
+        }
+    
+    }
+    catch(Exception e)
+    {
+        System.out.println("Exception cought in crawlSingle(String url) " + e.getMessage());
+        throw new Exception();
+    }
 }
 
 //Establish connection with the Database   
@@ -88,18 +158,11 @@ private static Connection connecttoDB() throws Exception
     }
 }
   
-private static void loadSeedlist()
+public void loadSeedlist() throws Exception
 {
     // load from database seedlist
-}
-
-private static void loadStatefromDB() throws Exception
-{
-    // load any previous data first from the database 
-    // Note: Load only crawled sites, not the status404
-    // make a lookup table for the queries ?
-   try{
-    String load_query = "SELECT URL from Docs_URL ORDER BY ID;";
+    try{
+    String load_query = "SELECT URL from Seed_List ORDER BY ID;";
     Statement load_st = con.createStatement();
     ResultSet load_result = load_st.executeQuery(load_query);
     
@@ -117,50 +180,43 @@ private static void loadStatefromDB() throws Exception
        System.out.println("Sql Exception :"+sqle.getMessage());
        throw new Exception();
     }
+}
+
+private void loadStatefromDB() throws Exception
+{
+    // load any previous data first from the database 
+    // Note: Load only crawled sites, not the status404
+    // make a lookup table for the queries ?
+   try{
+    String load_query = "SELECT URL,Downloaded from Docs_URL ORDER BY ID;";
+    Statement load_st = con.createStatement();
+    ResultSet load_result = load_st.executeQuery(load_query);
+    
+    String sarr[] = new String[2];
+    
+    while(load_result.next())
+    {   
+        if (load_result.getInt(2) != 0)
+        {
+            // Document was downloaded
+            putinCrawled(load_result.getString(1));
+            //System.out.println(load_result.getString(1));
+        }
+        else
+        {
+            // Document wasn't downloaded
+           putinExtracted(load_result.getString(1));
+            //System.out.println(load_result.getString(1));
+        }
+       
+    }
+   }
+   catch(SQLException sqle) {
+       System.out.println("Sql Exception :"+sqle.getMessage());
+       throw new Exception();
+    }
     
 }
-
-
-private static void crawlAll() throws Exception
-{
-    String url;
-    while (crawled_sites.size() < 20 && !extracted_sites.isEmpty())
-    {
-       for (Map.Entry<String, String> entry : extracted_sites.entrySet())
-       {
-           crawlSingle(entry.getValue() + entry.getKey());
-       }
-    }
-}
-
-
-private static void crawlSingle(String url) throws Exception
-{
-    try
-    {
-         if (isUrlValid(url))
-        {
-            Document doc = jsoupConnect(url);
-            downloadHtml(doc,url);
-            putinCrawled(url);
-            removefromExtracted(url);
-            insertinDB(url,doc);
-            Elements links = extractLinks(doc);
-            
-            for (Element link : links)
-            {
-                putinExtracted(link.attr("abs:href"));
-               // print(" * a: <%s>  (%s)", link.attr("abs:href"), trim(link.text(), 35));
-            }
-        }
-    }
-    catch(Exception e)
-    {
-        System.out.println("Exception cought in crawlSingle(String url)");
-        throw new Exception();
-    }
-}
-
 
 private static Elements extractLinks(Document doc)
 {
@@ -173,12 +229,13 @@ private static Document jsoupConnect(String urlseed) throws Exception
 {
     try{
         Document doc = Jsoup.connect(urlseed).get();
+        return doc;
     }
     
      catch (HttpStatusException http_e)
     {
         System.out.println("HTTP Status Exception:"+http_e.getMessage());
-        //status404_sites.put(urlseed);
+        status404_sites.add(urlseed);
         throw new Exception();
     }
     catch (SocketTimeoutException se)
@@ -226,46 +283,65 @@ private static int getUrlId(String url) throws Exception
 }
 
 
-private static void removefromExtracted(String url)
+private void removefromExtracted(String url)
 {
     String urlarr[] = new String[2];
+    urlarr[0] = url;
     splitUrlfromProtocol(urlarr);
     // synchronize the following
     extracted_sites.remove(urlarr[0]);
 }
 
-private static void putinExtracted(String url)
+private void putinExtracted(String url)
 {
     String urlarr[] = new String[2];
+    urlarr[0] = url;
     splitUrlfromProtocol(urlarr);
     // synchronize the following
     putinExtractedUrlandProtocol(urlarr[0],urlarr[1]);
 }
 
 // should be synchronized 
-private static void putinExtractedUrlandProtocol(String url, String protocol)
+private void putinExtractedUrlandProtocol(String url, String protocol)
 {
     extracted_sites.put(url, protocol);
 }
 
-private static void putinCrawled(String url)
+private void putinCrawled(String url)
 {
     String urlarr[] = new String[2];
+    urlarr[0] = url;
     splitUrlfromProtocol(urlarr);
     // synchronize the following
     putinCrawledUrlandProtocol(urlarr[0],urlarr[1]);
 }
 
-private static void putinCrawledUrlandProtocol(String url, String protocol)
+private void putinCrawledUrlandProtocol(String url, String protocol)
 {
     crawled_sites.put(url, protocol);
 }
 
-private static void insertinDB(String url,Document doc) throws Exception
+private static void insertExtractedUrlinDB (String url) throws Exception
+{
+    try{
+    int downloadedflag = 0;    
+    String query = "Insert into Docs_URL (URL, Downloaded) " + "Values ('"+ url+ "','" + downloadedflag + "')";
+    Statement st_ = con.createStatement();
+    st_.executeUpdate(query);
+    }
+    catch (SQLException sqle)
+    {
+        System.out.println("Sql Exception :"+sqle.getMessage());
+        throw new Exception();
+    }
+}
+
+
+private static void updateDB(String url,Document doc, int updateflag) throws Exception
 {
     try{
     String title = doc.title();
-    String query = "Insert into Docs_URL (Title,URL) " + "Values ('" + trim(title,50) + "','" + url+ "')";
+    String query = "Update Docs_URL Set Title = '" + trim(title,50) + "', Downloaded = " + updateflag + "Where URL = '" + url +"';";
     Statement st_ = con.createStatement();
     st_.executeUpdate(query);
     }
@@ -289,15 +365,24 @@ private static void splitUrlfromProtocol(String[] url)
     }
 }
 
-private static boolean isUrlValid(String url)
+private  boolean isUrlValid(String url)
 {
-    return (!isSelfRedirect(url) && isNewUrl(url));
+    if (status404_sites.contains(url))
+        return false;
+    else
+    {
+    boolean result = (!isSelfRedirect(url) && isNewUrl(url));
+    return result;
+    }
 }
 
 // should be synchronized
-private static boolean isNewUrl (String url)
+private  boolean isNewUrl (String url)
 {
-    if (crawled_sites.containsKey(url) || extracted_sites.containsKey(url))
+    String sarr[] = new String[2];
+    sarr[0] = url;
+    splitUrlfromProtocol(sarr);
+    if (crawled_sites.containsKey(sarr[0]) || extracted_sites.containsKey(sarr[0]))
         return false;
     else
         return true;
