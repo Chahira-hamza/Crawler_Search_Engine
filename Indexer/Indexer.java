@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -39,7 +41,9 @@ public class Indexer {
 	    static 	Stemmer stemmer=new Stemmer();
 	    static String root;
 	    static int position ;
-	   
+	    static HashMap <String , Word> WordDict=new HashMap<String, Word>(); 
+	    static  String Edited_Text;
+	    static ArrayList<String> aList=null;
 	 
 	    public static  void ConnectToDB()
 	    {
@@ -137,7 +141,23 @@ public class Indexer {
 		}
 
 	}
+		
+		public static void Edit_Text(String Text)
+		{
 
+			String[] words = Text.split("\\P{Alpha}+");
+
+			aList = new ArrayList<String>(Arrays.asList(words));
+			Iterator<String> it = aList.iterator();
+    		while (it.hasNext()) {
+    		    String st = it.next();
+    		    if (stopwords.h.contains(st)) 
+    		    {
+    		        it.remove();
+    		    }
+    		}
+    			
+		}
 		public static void GetKeyWords(Document doc)  {
 
 		String keywords = doc.select("meta[name=keywords]").attr("content");
@@ -265,7 +285,7 @@ public class Indexer {
             
 	    	try 
 	    	{  
-	    		//ConnectToDB();
+	    		ConnectToDB();
 
 	    		DirectoryStream<Path> stream = Files.newDirectoryStream(folder);
 	    		int i=1;
@@ -282,7 +302,8 @@ public class Indexer {
 	    			System.out.println("Doument ID : "+Doc_ID);
 	    			System.out.println("loop #"+i+"-");
 	    			
-//	    			String t = doc.text();
+	    			String t = doc.text().toLowerCase();
+	    			 Edit_Text(t);
 //	    			System.out.println(t);
 	    			
 	    			System.out.println("_________________________________________");
@@ -312,8 +333,8 @@ public class Indexer {
 	    			System.out.println("sucess text ?????????????????????????????????????");
 			    	
 //	    			
-//			    	InsertWords(WDict,Doc_ID);
-//			    	InsertText(t,Doc_ID);
+			    	InsertWords(WDict,Doc_ID);
+			    	InsertText(t,Doc_ID);
 			    	i++;
 			    	
 			    	Iterator<String> itr = WDict.keySet().iterator();
