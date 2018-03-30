@@ -144,8 +144,12 @@ public class Indexer {
 		
 		public static void Edit_Text(String Text)
 		{
-
+				System.out.println(Text);
 			String[] words = Text.split("\\P{Alpha}+");
+//			for(String w:words)
+//			{
+//				System.out.println(w);
+//			}
 
 			aList = new ArrayList<String>(Arrays.asList(words));
 			Iterator<String> it = aList.iterator();
@@ -156,6 +160,14 @@ public class Indexer {
     		        it.remove();
     		    }
     		}
+    		System.out.println("___________________");
+    		int i=0;
+    		for (String element : aList) 
+        		{  
+        			
+   					System.out.println(element+" -> index: "+i);
+   					i++;
+   			}
     			
 		}
 		public static void GetKeyWords(Document doc)  {
@@ -173,13 +185,18 @@ public class Indexer {
 				if (!(stopwords.h.contains(root)))
 				{
 					 System.out.println(root);
-					if (!WDict.containsKey(root))
+					if (!WordDict.containsKey(root))
 					{
-						WDict.put(root, RankDict.VDict.get("keyword"));
+						WordDict.put(root, new Word(RankDict.VDict.get("keyword"),-1));
 					}
 
 					else
-						WDict.replace(root, WDict.get(root) + RankDict.VDict.get("keyword"));
+					{
+						//WDict.replace(root, WDict.get(root) + RankDict.VDict.get("keyword"));
+						WordDict.get(root).AddPostion(-1);
+						WordDict.get(root).AddRank(RankDict.VDict.get("keyword"));
+
+					}
 
 				}
 			}
@@ -187,99 +204,122 @@ public class Indexer {
 
 	}
 		
-	    public static void GetTitle(Document doc)
-	    {	   
-	    	String s,w;
-	    	Elements m ;
+	  
+		public static void GetTitle(Document doc) {
+			String s, w;
+			Elements m;
+			int index;
 
-	    	String title = doc.title();
-	    	System.out.println("-"+title+"_______");
-	    	s=title;
+			String title = doc.title();
+			System.out.println("title: " + title + "_______");
+			s = title.toLowerCase();
 
-	    	String[] words=s.split("\\P{Alpha}+");
+			String[] words = s.split("\\P{Alpha}+");
 
-	    	for(String word : words)
-	    	{
-	    		w=word.toLowerCase(); 					// add  words in dictionary of doc 
-	    		root=stemmer.stem(w);
-	    		if(!(stopwords.h.contains(root)))
-	    		{ 
-	    			System.out.println(root);
-	    			if (!WDict.containsKey(root))
-	    			{
-	    				WDict.put(root,RankDict.VDict.get("title"));
-	    			}
+			for (String word : words) {
 
-	    			else
-	    				WDict.replace(root,WDict.get(root)+RankDict.VDict.get("title"));
+				if (!(stopwords.h.contains(word))) {
+					index = aList.indexOf(word); 			// first get the index of the word
+					root = stemmer.stem(word);
+					System.out.println(root);
 
-	    		}
-	    	}	
+					if (!WordDict.containsKey(root)) // check exists or not
+					{
+						WordDict.put(root, new Word(RankDict.VDict.get("title"), index));
 
-	    	m= doc.select("title").remove();
-	    }
+					}
 
-	    public static void GetHeaders(Document doc) 
-	    {
-	    	Elements h, m;
-	    	String n, w, s;
-	    	int pos;
-	    	for (int i = 1; i < 7; i++) {
-	    		n = Integer.toString(i);
-	    		h = doc.getElementsByTag("h" + n);
-	    		//System.out.println(h.toString());
+					else {
+						WordDict.get(root).AddPostion(index);
+						WordDict.get(root).AddRank(RankDict.VDict.get("title"));
 
-	    		for (Element e : h) {
-	    			s = e.text();
-	    			String[] words1 = s.split("\\P{Alpha}+");
-	    			for (String word : words1) {
-	    				w = word.toLowerCase();							 // add in dictinary of doc
-	    				root=stemmer.stem(w);
-	    				if (!(stopwords.h.contains(root))) {
-	    					System.out.println(root);
-	    					if (!WDict.containsKey(root)) {
-	    						WDict.put(root, RankDict.VDict.get("h" + n));
-	    					}
-
-	    					else
-	    						WDict.replace(root, WDict.get(root) + RankDict.VDict.get("h" + n));
-
-	    				}
-	    				// System.out.println(word);
-	    			}
-
-	    		}
-	    		m = doc.select("h" + n).remove();
-	    		String hh=m.text();
-	    		System.out.println("_______"+hh+"_______________");
-
-	    	}
-
-	    }
-
-	    public static void GetText(Document doc)
-	    {
-		String w;
-		String text = doc.text();
-		String[] words1 = text.split("\\P{Alpha}+");
-		System.out.println(text);
-		System.out.println("_________________________");
-		for (String word : words1) {
-			w = word.toLowerCase(); // add in dictinary of doc
-			if (!(stopwords.h.contains(w))) {
-				System.out.println(w);
-				if (!WDict.containsKey(w)) {
-					WDict.put(w, RankDict.VDict.get("p"));
+					}
+					// WordDict.replace(root,WordDict.get(root).AddRank(5.0), ;
+					// WDict.replace(root,WDict.get(root)+RankDict.VDict.get("title"));
+					aList.set(index, null);
 				}
 
-				else
-					WDict.replace(w, WDict.get(w) + RankDict.VDict.get("p"));
-
 			}
-			// System.out.println(word);
+
+			m = doc.select("title").remove();   // remove title from the doc 
 		}
 
-	}
+		public static void GetHeaders(Document doc) {
+			Elements h, m;
+			String n, w, s;
+			int index;
+			for (int i = 1; i < 7; i++) {
+				n = Integer.toString(i);
+				h = doc.getElementsByTag("h" + n);
+				// System.out.println("h"+n+": "+h.toString());
+				String header=h.text();
+				System.out.println("h"+n+": "+header);
+				for (Element e : h) {
+					s = e.text().toLowerCase();
+					String[] words1 = s.split("\\P{Alpha}+");
+					for (String word : words1) {
+						//w = word.toLowerCase(); // add in dictinary of doc
+
+						if (!(stopwords.h.contains(word))) {
+							index = aList.indexOf(word);
+							root = stemmer.stem(word);
+							System.out.println(root);
+							if (!WordDict.containsKey(root)) {
+								WordDict.put(root, new Word(RankDict.VDict.get("h" + n), index));
+								// WDict.put(root, RankDict.VDict.get("h" + n));
+							}
+
+							else {
+								// WDict.replace(root, WDict.get(root) +
+								// RankDict.VDict.get("h" + n));
+								WordDict.get(root).AddPostion(index);
+								WordDict.get(root).AddRank(RankDict.VDict.get("h" + n));
+							}
+							//aList.remove(index);
+							aList.set(index, null);
+						}
+						// System.out.println(word);
+					}
+
+				}
+				m = doc.select("h" + n).remove();             // remove headers from the doc 
+				String hh = m.text();
+				System.out.println("removed header : " + hh );
+
+			}
+
+		}
+
+		public static void GetText(Document doc) {
+			int index;
+
+			String text = doc.text().toLowerCase();
+			String[] words1 = text.split("\\P{Alpha}+");
+			System.out.println(text);
+			System.out.println("_________________________");
+			for (String w : words1) {
+
+				if (!(stopwords.h.contains(w))) {
+					root = stemmer.stem(w);
+					System.out.println(root);
+					index = aList.indexOf(w);
+					if (!WordDict.containsKey(root)) {
+						// WDict.put(w, RankDict.VDict.get("p"));
+						WordDict.put(root, new Word(RankDict.VDict.get("p"), index));
+					}
+
+					else {
+						// WDict.replace(w, WDict.get(w) + RankDict.VDict.get("p"));
+						WordDict.get(root).AddPostion(index);
+						WordDict.get(root).AddRank(RankDict.VDict.get("p"));
+					}
+					//boolean rem=aList.remove(word);
+					aList.set(index, null);
+				}
+				// System.out.println(word);
+			}
+
+		}
 
 	    public static void main(String[] args) throws SQLException {  
             
@@ -310,9 +350,9 @@ public class Indexer {
 	    			
 	    			
 	    			
-	    			GetTitle(doc);				//// extract title ///	
-	    			GetHeaders(doc);			//// extract headers ///
-	    			GetText(doc);
+	    			GetTitle(doc);				//// extract words in title ///	
+	    			GetHeaders(doc);			//// extract words in headers ///
+	    			GetText(doc);				// extract words in text //
 
 	    			//GetKeyWords(doc);	
 	    			System.out.println("__________________________");	
@@ -333,22 +373,34 @@ public class Indexer {
 	    			System.out.println("sucess text ?????????????????????????????????????");
 			    	
 //	    			
-			    	InsertWords(WDict,Doc_ID);
-			    	InsertText(t,Doc_ID);
+			    	//InsertWords(WDict,Doc_ID);
+			    	//InsertText(t,Doc_ID);
 			    	i++;
 			    	
 			    	Iterator<String> itr = WDict.keySet().iterator();
 		    		Iterator<Double> itr2 = WDict.values().iterator();
-
-		    		while (itr.hasNext())
-		    		{
-		    			System.out.print(itr.next());
-		    			System.out.print("  ");
-		    			System.out.println(itr2.next());
-
-		    		}
 		    		
-		    		WDict.clear();
+		    		Iterator<String> itrw1 = WordDict.keySet().iterator();
+		    		Iterator<Word> itrw2 = WordDict.values().iterator();
+//		    		while (itr.hasNext())
+//		    		{
+//		    			System.out.print(itr.next());
+//		    			System.out.print("  ");
+//		    			System.out.println(itr2.next());
+//
+//		    		
+		    		
+		    		
+		    		for (Map.Entry<String, Word> entry1 : WordDict.entrySet())
+		    		{
+		    		    	System.out.print(entry1.getKey()+"\t");
+		    		    	Word w1=entry1.getValue();
+		    		    	w1.Print_PosAndRank();
+		    		     
+		    		    
+		    		}
+	    		
+		    		WordDict.clear();
 			    	
 
 	    		}
