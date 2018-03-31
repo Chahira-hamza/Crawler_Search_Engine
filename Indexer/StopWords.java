@@ -8,7 +8,7 @@ public class StopWords {
 			"almost", "alone", "along", "already", "also","although","always","am","among", "amongst", "amoungst", "amount", 
 			"an", "and", "another", "any","anyhow","anyone","anything","anyway", "anywhere", "are", "around", "as",  "at", "back",
 			"be","became", "because","become","becomes", "becoming", "been", "before", "beforehand", "behind", "being", "below", "beside",
-			"besides", "between", "beyond", "bill", "both", "bottom","but", "by", "call", "can", "cannot", "cant", "co", "con", "could",
+			"besides", "between", "beyond", "bill", "both", "bottom","but", "by", "call", "c","can", "cannot", "cant", "co", "con", "could",
 			"couldnt", "de", "describe", "detail", "do", "done","down", "due", "during", "e","each", "eg", "eight", "either", "eleven","else",
 			 "elsewhere", "empty", "enough", "etc", "even", "ever", "every", "everyone", "everything", "everywhere", "except", "few", "fifteen",
 			 "fify","f", "fill", "find",  "first", "five", "for", "former", "formerly", "forty", "found", "four", "from", "front", 
@@ -24,7 +24,7 @@ public class StopWords {
 			"still", "such", "system", "take", "ten", "than", "that", "the", "their", "them", "themselves", "then", "thence", "there", 
 			"thereafter", "thereby", "therefore", "therein", "thereupon", "these", "they", "thickv", "third", "this", "those", 
 			"though", "three","t", "through", "throughout", "thru", "thus", "to",  "too",  "toward", "towards", "twelve",
-			"twenty", "two", "un", "under", "until", "up", "upon", "us", "very", "v","via", "was", "we", "well", "were", "what", "whatever",
+			"twenty", "two", "un", "under", "until", "up", "upon", "u","us", "very", "v","via", "was", "we", "well", "were", "what", "whatever",
 			"when", "whence", "whenever", "where", "whereafter", "whereas", "whereby", "wherein", "whereupon", "wherever", "whether", 
 			"which", "while", "whither", "who", "whoever", "whole", "whom", "whose", "why", "will", "with", "within", "without", "would",
 			"yet", "you", "your", "yours", "yourself", "yourselves", "the"};

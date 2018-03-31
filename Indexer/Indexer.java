@@ -362,12 +362,11 @@ public class Indexer {
 							}
 
 							else {
-								// WDict.replace(root, WDict.get(root) +
-								// RankDict.VDict.get("h" + n));
+								
 								WordDict.get(root).AddPostion(index);
 								WordDict.get(root).AddRank(RankDict.VDict.get("h" + n));
 							}
-							//aList.remove(index);
+							
 							aList.set(index, null);
 						}
 						// System.out.println(word);
