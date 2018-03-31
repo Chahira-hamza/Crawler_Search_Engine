@@ -1,13 +1,16 @@
 import java.util.ArrayList;
 
 public class Word {
-	public double Rank=0;
-	public  ArrayList Postions_list=new ArrayList();
+	public Double Rank=0.0;
+	public  ArrayList<Integer> Postions_list=new ArrayList<Integer>();
 	
-	public Word( Double r,int p)
+	public Word( double r,int p)
 	{
 		Rank=r;
-		Postions_list.add(p);
+		if(p!=-1)
+		{	
+			Postions_list.add(p);
+		}
 	}
 	
 	void AddRank(double r)

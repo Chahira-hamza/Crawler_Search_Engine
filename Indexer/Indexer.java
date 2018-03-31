@@ -35,7 +35,7 @@ public class Indexer {
 	    static Document doc ;
 	    static StopWords stopwords = null;
 	    static  ValueDict RankDict = null;
-	    static  HashMap<String, Double> WDict = new HashMap<String, Double>();   //word Dictionary;
+	    //static  HashMap<String, Double> WDict = new HashMap<String, Double>();   //word Dictionary;
 	    static Element others;
 	    static  String dbName="Indexer";
 	    static 	Stemmer stemmer=new Stemmer();
@@ -63,23 +63,37 @@ public class Indexer {
 
 	    }
 
-	    public static void InsertWords(HashMap<String, Double> W , int DocID) throws SQLException {
+	    public static void InsertWords(HashMap <String , Word> W , int DocID) throws SQLException {
 
 		PreparedStatement WordStmt = null;
+		PreparedStatement PostionsStmt=null;
 
-		String Insert_Words = "INSERT INTO Words (Doc_ID,word,Rankw)  VALUES  (?,?,?)";
-
+		String Insert_Words = "INSERT INTO Words (Doc_ID,Word_ID,word,Rankw)  VALUES  (?,?,?,?)";
+		String Insert_Postions="INSERT INTO WordPostions (Doc_ID, Word_ID,Pos) VALUES (?,?,?)";
+		int i=1;
 		try {
 			con.setAutoCommit(false);
 		
 			WordStmt = con.prepareStatement(Insert_Words);
-
-			for (Map.Entry<String, Double> e : W.entrySet()) {
+			PostionsStmt=con.prepareStatement(Insert_Postions);
+			for (Map.Entry<String, Word> e : W.entrySet()) {
 				WordStmt.setLong(1, DocID);
-				WordStmt.setString(2, e.getKey());
-				WordStmt.setLong(3, e.getValue().intValue());
+				WordStmt.setLong(2, i);
+				WordStmt.setString(3, e.getKey());
+				WordStmt.setLong(4, e.getValue().Rank.intValue());
 				WordStmt.executeUpdate();
+				
+				PostionsStmt.setLong(1, Doc_ID);
+				PostionsStmt.setLong(2, i);
+				
+				for(int in=0; in< e.getValue().Postions_list.size();in++)
+				{
+					PostionsStmt.setLong(3,(long) e.getValue().Postions_list.get(in) );
+					PostionsStmt.executeUpdate();
+				}
+				
 				con.commit();
+				i++;
 			}
 		} catch (SQLException e) {
 			
@@ -172,7 +186,7 @@ public class Indexer {
 		}
 		public static void GetKeyWords(Document doc)  {
 
-		String keywords = doc.select("meta[name=keywords]").attr("content");
+		String keywords = doc.select("meta[name=keywords]").attr("content").toLowerCase();
 		if (keywords != null) {
 			System.out.println("keywords= " + keywords);
 			String[] words = keywords.split("\\P{Alpha}+");
@@ -180,10 +194,10 @@ public class Indexer {
 
 			for (String word : words) 
 			{
-				w = word.toLowerCase(); // add words in dictionary of doc
-				root=stemmer.stem(w);
+				root=stemmer.stem(word);
 				if (!(stopwords.h.contains(root)))
-				{
+				{	
+					root=stemmer.stem(word);
 					 System.out.println(root);
 					if (!WordDict.containsKey(root))
 					{
@@ -193,7 +207,7 @@ public class Indexer {
 					else
 					{
 						//WDict.replace(root, WDict.get(root) + RankDict.VDict.get("keyword"));
-						WordDict.get(root).AddPostion(-1);
+						//WordDict.get(root).AddPostion(-1);
 						WordDict.get(root).AddRank(RankDict.VDict.get("keyword"));
 
 					}
@@ -225,7 +239,7 @@ public class Indexer {
 
 					if (!WordDict.containsKey(root)) // check exists or not
 					{
-						WordDict.put(root, new Word(RankDict.VDict.get("title"), index));
+						WordDict.put(root, new Word(ValueDict.VDict.get("title"), index));
 
 					}
 
@@ -342,8 +356,8 @@ public class Indexer {
 	    			System.out.println("Doument ID : "+Doc_ID);
 	    			System.out.println("loop #"+i+"-");
 	    			
-	    			String t = doc.text().toLowerCase();
-	    			 Edit_Text(t);
+	    			String CompleteText = doc.text().toLowerCase();      /// text saved in lower case or not ?
+	    			 Edit_Text(CompleteText);
 //	    			System.out.println(t);
 	    			
 	    			System.out.println("_________________________________________");
@@ -354,35 +368,27 @@ public class Indexer {
 	    			GetHeaders(doc);			//// extract words in headers ///
 	    			GetText(doc);				// extract words in text //
 
-	    			//GetKeyWords(doc);	
+	    			GetKeyWords(doc);	
 	    			System.out.println("__________________________");	
 	    			
 	    			
 	    			
 
-	    			//rs= stmt.executeQuery(SQL); 
-
-	    			// String SQL = "INSERT INTO DocText (Doc_ID,Dtext)  "+ " VALUES  ('"  +1+  "','" + t +"')";
-	    			//String SQL="DELETE FROM Docs_URL";
-	    			//String SQL = "INSERT INTO DocText (Doc_ID,Dtext)    VALUES (?, ?")";
-	    			//stmt = con.createStatement(); 
-	    			//	    			PreparedStatement sql= con.prepareStatement( "INSERT INTO DocText (Doc_ID,Dtext)  VALUES  (?,?  )");
-	    			//	    			sql.setLong(1, 2);
-	    			//	    			sql.setString(2, t.toLowerCase());
-	    			//			    	sql.executeUpdate();
+	    			
 	    			System.out.println("sucess text ?????????????????????????????????????");
 			    	
 //	    			
-			    	//InsertWords(WDict,Doc_ID);
-			    	//InsertText(t,Doc_ID);
-			    	i++;
+			    	InsertWords(WordDict,Doc_ID);
+			    	//InsertText(CompleteText,Doc_ID);
 			    	
-			    	Iterator<String> itr = WDict.keySet().iterator();
-		    		Iterator<Double> itr2 = WDict.values().iterator();
-		    		
-		    		Iterator<String> itrw1 = WordDict.keySet().iterator();
-		    		Iterator<Word> itrw2 = WordDict.values().iterator();
-//		    		while (itr.hasNext())
+			    	i++;
+//			    	
+//			    	Iterator<String> itr = WDict.keySet().iterator();
+//		    		Iterator<Double> itr2 = WDict.values().iterator();
+//		    		
+//		    		Iterator<String> itrw1 = WordDict.keySet().iterator();
+//		    		Iterator<Word> itrw2 = WordDict.values().iterator();
+////		    		while (itr.hasNext())
 //		    		{
 //		    			System.out.print(itr.next());
 //		    			System.out.print("  ");

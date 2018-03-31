@@ -2,9 +2,9 @@
 import java.util.*;
 
 public class ValueDict {
-    static public HashMap<String, Double> VDict  = new HashMap<String, Double>();;
+    static public HashMap<String, Double> VDict  = new HashMap<String, Double>();
 
-    
+    	static Double k=VDict.put("keyword",100.0);
     	static Double t=VDict.put("title",50.0);
     	static Double n= VDict.put("h1", 40.0);
     	static Double x= VDict.put("h2", 35.0);
