@@ -21,11 +21,11 @@ import org.jsoup.select.Elements;
 
 public class Indexer {
 	   // Create a variable for the connection string.  
-	 	private static String connectionUrl = "jdbc:sqlserver://localhost:1433;" + "databaseName=Indexer;user=sa;password=root"; 
-	   // Declare the JDBC objects.  
+	 	private static String connectionUrl = "jdbc:sqlserver://localhost:1433;" + "databaseName=Indexer;user=sa;password=root"; 		 // Declare the JDBC objects.  
+	  
 	    static Connection con = null;  
-	    static Statement stmt = null;  
-	    static ResultSet rs = null;
+//	    static Statement stmt = null;  
+//	    static ResultSet rs = null;
 	    static String Doc_Text;
 	    static int Doc_ID;
 	    static  String Driver="com.microsoft.sqlserver.jdbc.SQLServerDriver";
@@ -35,13 +35,13 @@ public class Indexer {
 	    static Document doc ;
 	    static StopWords stopwords = null;
 	    static  ValueDict RankDict = null;
-	    //static  HashMap<String, Double> WDict = new HashMap<String, Double>();   //word Dictionary;
 	    static Element others;
 	    static  String dbName="Indexer";
-	    static 	Stemmer stemmer=new Stemmer();
+	    static 	Stemmer stemmer=new Stemmer();										//For stemming the words
 	    static String root;
 	    static int position ;
-	    static HashMap <String , Word> WordDict=new HashMap<String, Word>(); 
+	    static HashMap <String , Word> WordDict=new HashMap<String, Word>();      // words and its informATION
+	    static  ArrayList<Integer> Doc_list=new ArrayList<Integer>();
 	    static  String Edited_Text;
 	    static ArrayList<String> aList=null;
 	 
@@ -80,7 +80,7 @@ public class Indexer {
 				WordStmt.setLong(1, DocID);
 				WordStmt.setLong(2, i);
 				WordStmt.setString(3, e.getKey());
-				WordStmt.setLong(4, e.getValue().Rank.intValue());
+				WordStmt.setLong(4, e.getValue().Rank.longValue());
 				WordStmt.executeUpdate();
 				
 				PostionsStmt.setLong(1, Doc_ID);
@@ -156,14 +156,91 @@ public class Indexer {
 
 	}
 		
+		public static void  UpdateWords(HashMap <String , Word> W , int DocID)throws SQLException
+		{
+			
+			PreparedStatement Delete_WordStmt = null;
+
+			String DeleteWords="Delete from Words where Doc_ID = (?)";
+			try{
+				con.setAutoCommit(false);
+				Delete_WordStmt = con.prepareStatement( DeleteWords);
+				Delete_WordStmt.setLong(1, DocID);
+				Delete_WordStmt.executeUpdate();
+				con.commit();
+				
+				InsertWords( W , DocID);
+
+			}
+			catch (SQLException e) {
+
+				System.out.println("Sql Exception :" + e.getMessage());
+				if (con != null) {
+					try {
+						System.err.print("Transaction is being rolled back");
+						con.rollback();
+					} catch (SQLException excep) {
+
+						System.out.println("Sql Exception :" + e.getMessage());
+					}
+				}
+			}
+
+			finally {
+				if (Delete_WordStmt != null) {
+					Delete_WordStmt.close();
+				}
+
+				con.setAutoCommit(true);
+			}
+
+		}
+		
+		public static void UpdateText(String Text , int Doc_ID) throws SQLException
+		{
+			PreparedStatement UpdateTextStmt = null;
+			String Update_Text = "Update DocText SET Dtext = ? where Doc_ID=?;";
+
+			try {
+				con.setAutoCommit(false);
+				UpdateTextStmt = con.prepareStatement(Update_Text);
+				UpdateTextStmt.setString(1, Text);
+				UpdateTextStmt.setLong(2, Doc_ID);
+				UpdateTextStmt.executeUpdate();
+				con.commit();
+
+			}
+			catch (SQLException e) {
+
+				System.out.println("Sql Exception :" + e.getMessage());
+				if (con != null) {
+					try {
+						System.err.print("Transaction is being rolled back");
+						con.rollback();
+					} catch (SQLException excep) {
+
+						System.out.println("Sql Exception :" + e.getMessage());
+					}
+				}
+			}
+
+			finally {
+				if (UpdateTextStmt != null)
+				{
+					UpdateTextStmt.close();
+				}
+
+				con.setAutoCommit(true);
+			}
+
+		}
+
+			
+
 		public static void Edit_Text(String Text)
 		{
 				System.out.println(Text);
 			String[] words = Text.split("\\P{Alpha}+");
-//			for(String w:words)
-//			{
-//				System.out.println(w);
-//			}
 
 			aList = new ArrayList<String>(Arrays.asList(words));
 			Iterator<String> it = aList.iterator();
@@ -176,14 +253,16 @@ public class Indexer {
     		}
     		System.out.println("___________________");
     		int i=0;
-    		for (String element : aList) 
-        		{  
-        			
-   					System.out.println(element+" -> index: "+i);
-   					i++;
-   			}
+//    		for (String element : aList) 
+//        		{  
+//        			
+//   					System.out.println(element+" -> index: "+i);
+//   					i++;
+//   			}
     			
 		}
+		
+		
 		public static void GetKeyWords(Document doc)  {
 
 		String keywords = doc.select("meta[name=keywords]").attr("content").toLowerCase();
@@ -237,7 +316,7 @@ public class Indexer {
 					root = stemmer.stem(word);
 					System.out.println(root);
 
-					if (!WordDict.containsKey(root)) // check exists or not
+					if (!WordDict.containsKey(root))		 // check exists or not
 					{
 						WordDict.put(root, new Word(ValueDict.VDict.get("title"), index));
 
@@ -248,8 +327,7 @@ public class Indexer {
 						WordDict.get(root).AddRank(RankDict.VDict.get("title"));
 
 					}
-					// WordDict.replace(root,WordDict.get(root).AddRank(5.0), ;
-					// WDict.replace(root,WDict.get(root)+RankDict.VDict.get("title"));
+					
 					aList.set(index, null);
 				}
 
@@ -318,19 +396,19 @@ public class Indexer {
 					System.out.println(root);
 					index = aList.indexOf(w);
 					if (!WordDict.containsKey(root)) {
-						// WDict.put(w, RankDict.VDict.get("p"));
+						
 						WordDict.put(root, new Word(RankDict.VDict.get("p"), index));
 					}
 
 					else {
-						// WDict.replace(w, WDict.get(w) + RankDict.VDict.get("p"));
+						
 						WordDict.get(root).AddPostion(index);
 						WordDict.get(root).AddRank(RankDict.VDict.get("p"));
 					}
-					//boolean rem=aList.remove(word);
+					
 					aList.set(index, null);
 				}
-				// System.out.println(word);
+				
 			}
 
 		}
@@ -343,6 +421,7 @@ public class Indexer {
 
 	    		DirectoryStream<Path> stream = Files.newDirectoryStream(folder);
 	    		int i=1;
+	    		 int FlagUpdate=0;
 	    		for (Path entry : stream) 
 	    		{
 	    			// Process the entry
@@ -352,13 +431,24 @@ public class Indexer {
 	    			
 	    			String f=filename.replaceAll("\\D+","");  								 // regex delete non digits
 	    			Doc_ID=Integer.parseInt(f, 2);
+	    			if (! Doc_list.contains(Doc_ID))
+	    			{
+	    				Doc_list.add(Doc_ID);
+	    				 FlagUpdate=0;
+	    				
+	    			}
+	    			else 
+	    			{
+	    				 FlagUpdate=1;
+	    			}
 	    			
+	    			//FlagUpdate=1;
 	    			System.out.println("Doument ID : "+Doc_ID);
 	    			System.out.println("loop #"+i+"-");
 	    			
-	    			String CompleteText = doc.text().toLowerCase();      /// text saved in lower case or not ?
-	    			 Edit_Text(CompleteText);
-//	    			System.out.println(t);
+	    			String CompleteText = doc.text();      				/// the orginal  text
+	    			Edit_Text(CompleteText.toLowerCase());
+
 	    			
 	    			System.out.println("_________________________________________");
 	    			
@@ -367,8 +457,8 @@ public class Indexer {
 	    			GetTitle(doc);				//// extract words in title ///	
 	    			GetHeaders(doc);			//// extract words in headers ///
 	    			GetText(doc);				// extract words in text //
-
-	    			GetKeyWords(doc);	
+	    			GetKeyWords(doc);			// extract words in keywords //
+	    			
 	    			System.out.println("__________________________");	
 	    			
 	    			
@@ -377,27 +467,22 @@ public class Indexer {
 	    			
 	    			System.out.println("sucess text ?????????????????????????????????????");
 			    	
-//	    			
-			    	InsertWords(WordDict,Doc_ID);
-			    	//InsertText(CompleteText,Doc_ID);
+	    			
+	    			if( FlagUpdate==0)
+	    			{
+			    		InsertWords(WordDict,Doc_ID);
+			    		InsertText(CompleteText,Doc_ID);
+	    			}
+	    			else 
+	    			{
+	    				 UpdateWords(WordDict,Doc_ID);
+	    				 UpdateText(CompleteText,Doc_ID);
+	    				
+	    			}
 			    	
-			    	i++;
-//			    	
-//			    	Iterator<String> itr = WDict.keySet().iterator();
-//		    		Iterator<Double> itr2 = WDict.values().iterator();
-//		    		
-//		    		Iterator<String> itrw1 = WordDict.keySet().iterator();
-//		    		Iterator<Word> itrw2 = WordDict.values().iterator();
-////		    		while (itr.hasNext())
-//		    		{
-//		    			System.out.print(itr.next());
-//		    			System.out.print("  ");
-//		    			System.out.println(itr2.next());
-//
-//		    		
 		    		
 		    		
-		    		for (Map.Entry<String, Word> entry1 : WordDict.entrySet())
+		    		for (Map.Entry<String, Word> entry1 : WordDict.entrySet()) 			//to show the data of Word Dictionary
 		    		{
 		    		    	System.out.print(entry1.getKey()+"\t");
 		    		    	Word w1=entry1.getValue();
@@ -406,22 +491,22 @@ public class Indexer {
 		    		    
 		    		}
 	    		
-		    		WordDict.clear();
-			    	
+		    		WordDict.clear();												// clear the words Dictionary 
+		    		boolean sucess= input.delete();									// deleting the file 
+		    		if(sucess)
+		    		{
+		    			System.out.println("Deleted :"+i);
+		    			
+		    		}
+		    		i++;
 
 	    		}
 
 
 	    	
-	    		// Create and execute an SQL statement that returns some data.  
-	    		// String SQL = "SELECT Title  FROM Docs";  
-
-	    		// Iterate through the data in the result set and display it.  
-	    		//	         	while (rs.next())
-	    		//	         	{  
-	    		//	        	 	System.out.println(rs.getString(1));  
-	    		//	         	}  
+	    	
 	    		stream.close();
+	    		Doc_list.clear();         				// clearing the list of documents	
 
 	    		
 	    	}  
@@ -442,8 +527,8 @@ public class Indexer {
 
 	    	finally 
 	    	{  
-	    		         if (rs != null) try { rs.close(); } catch(Exception e) {}  
-	    		         if (stmt != null) try { stmt.close(); } catch(Exception e) {}  
+//	    		         if (rs != null) try { rs.close(); } catch(Exception e) {}  
+//	    		         if (stmt != null) try { stmt.close(); } catch(Exception e) {}  
 	    			      if (con != null) try { con.close(); } catch(Exception e) {}  
 	    	}  
 	    }  

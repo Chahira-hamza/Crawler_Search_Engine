@@ -22,6 +22,7 @@ public class Word {
 	void AddPostion(int p)
 	{
 		Postions_list.add(p);
+		
 	}
 	
 	void Print_PosAndRank()
