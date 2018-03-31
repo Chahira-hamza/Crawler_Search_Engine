@@ -19,7 +19,7 @@ CREATE TABLE Words
     word nvarchar(20) Not NULL, 
 	Rankw bigint Not Null,
 	PRIMARY KEY (Doc_ID,Word_ID),    
-CONSTRAINT FK_DOCID FOREIGN KEY (Doc_ID) REFERENCES Docs_URL(ID)   
+CONSTRAINT FK_worddoc FOREIGN KEY (Doc_ID) REFERENCES Docs_URL(ID)   
     ON DELETE CASCADE    
     ON UPDATE CASCADE    
 );  
@@ -41,7 +41,20 @@ CREATE TABLE DocText(
 	[Doc_ID] [int] NOT NULL,
 	[Dtext] [text] NOT NULL,
 	PRIMARY KEY (Doc_ID),    
-CONSTRAINT FK_TDOCID FOREIGN KEY (Doc_ID)
+CONSTRAINT FK_TextDoc FOREIGN KEY (Doc_ID)
     REFERENCES Docs_URL(ID)    
     ON DELETE CASCADE    
     ON UPDATE CASCADE
+	);
+	
+	///// for delete all values and resest auto increment 
+delete from Docs_URL;
+DBCC CHECKIDENT(Docs_URL, RESEED, 0); 
+
+delete from DocText;
+
+delete from Words;
+
+	
+	
+	
