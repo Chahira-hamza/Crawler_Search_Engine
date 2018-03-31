@@ -11,13 +11,28 @@ primary key(ID)
 );
 
 
+
+
 CREATE TABLE Words
 (   Doc_ID int NOT NULL,
-	Word_ID int NOT NULL  Identity(1,1),
+	Word_ID int NOT NULL ,
     word nvarchar(20) Not NULL, 
-	Rankw INt Not Null,
+	Rankw bigint Not Null,
 	PRIMARY KEY (Doc_ID,Word_ID),    
 CONSTRAINT FK_DOCID FOREIGN KEY (Doc_ID) REFERENCES Docs_URL(ID)   
+    ON DELETE CASCADE    
+    ON UPDATE CASCADE    
+);  
+
+
+	CREATE TABLE WordPostions
+(   Doc_ID int NOT NULL,
+	Word_ID int NOT NULL,
+	Pos bigint Not NULL, 
+	
+	PRIMARY KEY (Doc_ID,Word_ID,Pos),    
+CONSTRAINT FK_PosID FOREIGN KEY (Doc_ID,Word_ID)
+    REFERENCES Words(Doc_ID,Word_ID)    
     ON DELETE CASCADE    
     ON UPDATE CASCADE    
 );  
@@ -30,5 +45,3 @@ CONSTRAINT FK_TDOCID FOREIGN KEY (Doc_ID)
     REFERENCES Docs_URL(ID)    
     ON DELETE CASCADE    
     ON UPDATE CASCADE
-	)
-	
