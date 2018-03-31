@@ -7,9 +7,8 @@ remove or correctly change the package name to work on your project
 Add a folder "html_docs" in your local project directory
 Docs_URL table created in ms sql - run the Docs_URL.sql in your database ( ** check the updated schema !)
 
+The current version uses a class: CustomURL - make sure it is in the same package to work properly !
+
 Output:
 html docs from the seed_ string in html_docs folder in binary numbering
 
-docs_url.sql:
-Docs_URL should be used with Crawler.java
-contains: ID, title and URLs
