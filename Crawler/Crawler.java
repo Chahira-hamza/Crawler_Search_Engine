@@ -9,29 +9,37 @@ import org.jsoup.select.Elements;
 import java.io.*;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 
-public class crawler_v2 {
+public class Crawler implements Runnable {
 
     private static final String DBCLASSNAME = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
     private static final String CONNECTION =
-			"jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=;";
+			"jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=gam3astuff*;";
+    
     private static Connection con;
    
     private static LinkedList<CustomURL> extracted;
-    private static LinkedList<CustomURL> blocked;
     private static LinkedList<CustomURL> crawled;
     private static LinkedList<CustomURL> currently;
-            
     private static LinkedList<CustomURL> visited;
+        
+    private static LinkedList<CustomURL> disallowedRobots;
+    private static LinkedList<CustomURL> allowedRobots;
+    
+    private static HashSet <String> hostParsedbyRobots;
 
     private static int CrawledMax;      //5'000 pages
     
     private static int depthIteration;
     private static int currentIteration;
-    private static int threadNum;
+
    
     public static void main(String[] args) throws Exception {
  
@@ -42,14 +50,15 @@ public class crawler_v2 {
         int depth = 2;
         int thread = 1;
         
-        crawler_v2  crawler = new crawler_v2(depth,thread);
+        Crawler  crawler = new Crawler(depth,thread);
         
         crawler.run();
       
         System.out.println("Crawled sites = " + crawled.size());
         System.out.println("Extracted sites = " + extracted.size());
-	//System.out.println("Blocked sites = " + blocked.size());
         System.out.println("Visited sites = " + visited.size());
+        System.out.println("Disallowed sites = " + disallowedRobots.size());
+        System.out.println("Allowed sites = " + allowedRobots.size());
         
         System.out.println("It works !");
         con.close();
@@ -68,19 +77,21 @@ Constructor
 Calls connecttoDatabase, throws exception if connection fails
 Initializes static variables declared 
 */
-public crawler_v2(int depth, int threadnum) throws Exception
+public Crawler(int depth, int threadnum) throws Exception
 { 
     con = connecttoDB();
-
-    crawled     = new LinkedList<>();
-    extracted   = new LinkedList<>();
-    blocked     = new LinkedList<>();
-    currently   = new LinkedList<>();
-    visited     = new LinkedList<>();
+    
+    crawled             = new LinkedList<>();
+    extracted           = new LinkedList<>();
+    currently           = new LinkedList<>();
+    visited             = new LinkedList<>(); 
+    disallowedRobots    = new LinkedList<>();
+    allowedRobots       = new LinkedList<>();
+    hostParsedbyRobots  = new HashSet<>();
    
-    CrawledMax = 5000;
-    depthIteration = depth;
-    threadNum = threadnum;
+    CrawledMax      = 5000;
+    depthIteration  = depth;
+    //threadNum       = threadnum;
     
     currentIteration = 1;
     
@@ -89,33 +100,51 @@ public crawler_v2(int depth, int threadnum) throws Exception
 
 
 
-public void run() throws Exception
+public void run() 
 {
 
-    while (currentIterationRunning())
+    while (true)
     {
-        // get link to crawl
-        CustomURL url = new CustomURL();
-
-        // synchronized
-        url = getLinktoCrawl();
-
-        if ( (url != null && isNewUrl(url)) )
+        while (currentIterationRunning())
         {
-           Elements links =  exctractAllLinks(url);
-           addtoCurrentlyCrawling(url);
-           checkAndAdd(links,url);
-           addtoVisited(url);
-           int visitedflag = 2;
-           Document doc = null;
-           insertUpdateUrlinDB(url.myURL.toString(),visitedflag,doc);
+            try{
+            // get link to crawl
+            CustomURL url = new CustomURL();
+
+            // synchronized
+            url = getLinktoCrawl();
+
+            // check its Robots
+            if (!hostParsedbyRobots.contains(url.myURL.getHost()))
+               // parseRobots(url);
+            
+            if ( (url != null && isNewUrl(url)) )
+            {
+               Elements links =  exctractAllLinks(url);
+               addtoCurrentlyCrawling(url);
+               checkAndAdd(links,url);
+               addtoVisited(url);
+               int visitedflag = 2;
+               Document doc = null;
+               insertUpdateUrlinDB(url.myURL.toString(),visitedflag,doc);
+            }
+
+            }
+            catch(Exception e)
+            {
+                System.out.println("Handled exception, discarding current url\nContinuing...");
+                continue;
+            }
         }
         
         if (currentIteration == 1)      //desired depth
         {
             currentIteration ++;
         }
+        else
+            break;
     }
+          
 
     System.out.println("Thread # "+ Thread.currentThread().getName() +" finished");
     
@@ -162,7 +191,7 @@ private  Elements exctractAllLinks(CustomURL urlseed) throws Exception
         
         Elements links = extractLinks(doc);
 
-        System.out.println("Links = "+links.size());
+        //System.out.println("Links = "+links.size());
         return links;
         
     }
@@ -187,6 +216,9 @@ private void checkAndAdd(Elements links,CustomURL url) throws Exception
             String linkstring = checkEndSlashUrl(link.attr("abs:href"));
             CustomURL urlc = new CustomURL(linkstring);
             
+            if (!hostParsedbyRobots.contains(urlc.myURL.getHost()))
+                //parseRobots(urlc);
+            
             if (isUrlValid(urlc))
             {
                 
@@ -206,9 +238,7 @@ private void checkAndAdd(Elements links,CustomURL url) throws Exception
                    continue;
 
                 Document doc = null;
-
-                
-                    
+    
                 insertUpdateUrlinDB(linkstring,downloadflag,doc);
             }
         }
@@ -278,6 +308,7 @@ private static Connection connecttoDB() throws Exception
 {
     try{   
         Class.forName(DBCLASSNAME);
+        
         Connection con = DriverManager.getConnection(CONNECTION);
         System.out.println("Connected to database !");
         return con;
@@ -455,13 +486,14 @@ private static void updateDB(String url,Document doc, int updateflag) throws Exc
     }
 }
 
-private  boolean isUrlValid(CustomURL url)
+private synchronized boolean isUrlValid(CustomURL url)
 {
-    if (blocked.contains(url))
+    if (disallowedRobots.contains(url))
         return false;
     else
     {
-        return ( (!isSelfRedirect(url) && isNewUrl(url)) );
+       // return ( (!isSelfRedirect(url) && isNewUrl(url)) && allowedRobots.contains(url));
+        return ( (!isSelfRedirect(url) && isNewUrl(url)));
     }
 }
 
@@ -494,5 +526,79 @@ private static String trim(String s, int width) {
                 return s;
 }
 
+private synchronized static void addDisallowed(CustomURL url)
+{
+    disallowedRobots.add(url);
+}
 
+private synchronized static void addAllowed(CustomURL url)
+{
+    allowedRobots.add(url);
+}
+
+public void parseRobots(CustomURL urlc) throws Exception
+    {
+
+        String url_tovisit = urlc.myURL.getProtocol() + "://" + urlc.myURL.getHost();
+        String url_robots = url_tovisit + "/robots.txt";
+
+        try
+        {
+            URL url = new URL(url_robots);
+            HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+            int Rcode = connection.getResponseCode();
+            boolean isUA = false;
+
+            if (Rcode == 200)
+            {
+                BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+                String line = null;
+
+                while((line = in.readLine()) != null ) 
+                {
+                    if (line.startsWith("#")) {
+                        continue;
+                    }
+                    if (!line.toLowerCase().startsWith("user-agent: *") && isUA == false) {
+//                        while (in.readLine().isEmpty() == false)
+//                        {
+//                            continue;
+//                        }
+                    }
+                    else {
+                        isUA = true;
+                        if (line.isEmpty()) {
+                            break;
+                        }
+                        if (line.toLowerCase().startsWith("disallow:")) 
+                        {
+                            CustomURL disURL = new CustomURL(url_tovisit + line.substring(10));
+                            addDisallowed(disURL);
+                        } 
+                        else if (line.toLowerCase().startsWith("allow:")) 
+                        {
+                            CustomURL allURL = new CustomURL(url_tovisit + line.substring(7));
+                            addAllowed(allURL);   
+                        }
+                    }
+                    
+                }
+            }
+            else
+            {
+                System.out.println("Can't find robot.txt");
+            }
+
+//            for (int i = 0; i < Disallowed_URLS.size(); i++) {
+//                System.out.println(Disallowed_URLS.get(i));
+//            }
+
+                 hostParsedbyRobots.add(urlc.myURL.getHost());
+        }
+
+        catch(MalformedURLException e)
+        {
+
+        }
+    }
 }
