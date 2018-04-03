@@ -33,7 +33,7 @@ public class CrawlerResources {
    // allowedRobots       = new LinkedList<>();
     hostParsedbyRobots  = new HashSet<>();
     
-    currentIteration = 1;
+    currentIteration = 0;
     depth = depth_;
     maxcrawled = maxdoc;
     
@@ -42,6 +42,7 @@ public class CrawlerResources {
     
     public void printData()
     {
+        System.out.println("Last Iteration = " + currentIteration);
         System.out.println("Crawled sites = " + crawled.size());
         System.out.println("Extracted sites = " + extracted.size());
         System.out.println("Visited sites = " + visited.size());

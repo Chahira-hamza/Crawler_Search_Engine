@@ -63,7 +63,7 @@ public void run()
     catch(Exception e)
     {
         System.out.println("Handled exception, discarding current url\n" + e.getMessage());
-        continue;
+        //continue;
     }
     }
       
@@ -109,11 +109,11 @@ try
                 if (getUrlId(linkstring) != -1)
                 {
                     // normally don't need this query!
-                    // seems to be a bug in java for large number of elements!
-                    // an item can be in a list and contains returns false ! (debugged and checked it)
+                    // for debugging !
                     System.out.println("added already");
                     continue;
                 }
+                
                 ourResources.addasExtracted(urlc);
                 insertUrlinDB(linkstring);
             }
