@@ -13,49 +13,79 @@ import java.util.concurrent.Executors;
  */
 public class CrawlerManager implements Runnable {
     
-    int CrawledMax;
-    int depthIteration;
+    Object lock;
     int threadNum;
     Connection con;
+    Thread workers[];
     boolean tasksNotFinished;
-    Object lock;
     CrawlerResources myCrawlerResources;
+    
     
     public CrawlerManager(int depth, int threadnum, int maxDoc,Connection connection, Object lock_) {
         
     System.out.println("Crawler Manager created");
-    CrawledMax      = maxDoc;
-    depthIteration  = depth;
-    threadNum       = threadnum;
-    con             = connection;
-    lock = lock_;
+    
+    threadNum   = threadnum;
+    con         = connection;
+    lock        = lock_;
+    
+    myCrawlerResources = new CrawlerResources(depth,maxDoc);
+    workers = new Thread[threadNum];
+    
     }
     
     public void run()
     {
-        // object that will passed to all threads
-        myCrawlerResources = new CrawlerResources();
-        
         loadStatefromDB();
         
-        // thread pool
-        ExecutorService Executor =  Executors.newFixedThreadPool(threadNum);
-    
-        while(!maxDocsReached())
+        // creating threads
+       while (myCrawlerResources.depthNotReached() && myCrawlerResources.docsNotReached())
+       {
+           for (int i=0; i<threadNum; i++)
         {
-            while(currentIterationRunning() && !maxDocsReached())
+           workers[i] = new Thread(new Crawler(myCrawlerResources, con, lock));
+           workers[i].start();
+        } 
+            try
             {
-                Executor.submit(new Crawler(myCrawlerResources,con,lock));
+                for (int i=0; i<threadNum; i++)
+                {
+                   workers[i].join();
+                }
             }
-            
+            catch(Exception e)
+            {
+                System.err.println(e.getMessage());
+            }  
+           
             myCrawlerResources.currentIteration++;
-            
-        }
-
-        myCrawlerResources.printData();
+       }
+       
+       myCrawlerResources.printData();
         
-        Executor.shutdown();
 
+        // thread pool
+//        ExecutorService Executor =  Executors.newFixedThreadPool(threadNum);
+//        while(!maxDocsReached())
+//        {
+//            while(!maxDocsReached())
+//            {
+//                Executor.submit(new Crawler(myCrawlerResources,con,lock));
+//                
+//                if (!myCrawlerResources.currentIterationRunning())
+//                {
+//                    if (myCrawlerResources.currentIteration == depthIteration)
+//                        break;
+//                    else
+//                        myCrawlerResources.currentIteration++;
+//                }
+//            }
+//        }
+//        Executor.shutdown();
+
+
+        
+       
     }
     
     private void loadStatefromDB()
@@ -76,14 +106,11 @@ public class CrawlerManager implements Runnable {
         int downloadflag = load_result.getInt(2);
         
         switch (downloadflag) {
-            case 0:
-                myCrawlerResources.extracted.add(url);
-                break;
-            case 1:
-                myCrawlerResources.crawled.add(url);
+            case 2:
+                myCrawlerResources.visited.add(url);
                 break;
             default:
-                myCrawlerResources.visited.add(url);
+                myCrawlerResources.extracted.add(url);
                 break;
         }
     }
@@ -97,18 +124,5 @@ public class CrawlerManager implements Runnable {
    }
     
 }
-   private boolean currentIterationRunning()
-{
-    if ( ((myCrawlerResources.currentIteration%2) != 0) )
-    {
-        return (!myCrawlerResources.extracted.isEmpty());
-    }
-    else
-        return (!myCrawlerResources.crawled.isEmpty());
-}
-   
-   private boolean maxDocsReached()
-   {
-      return  (myCrawlerResources.visited.size() >= CrawledMax);
-   }
+    
 }

@@ -30,57 +30,46 @@ public Crawler(CrawlerResources CR, Connection connection, Object lock_)
 
 public void run() 
 {
-//    while (currentIterationRunning())
-//    {
-        
-    try{
+    while (ourResources.currentIterationRunning() && ourResources.docsNotReached())
+    {      
+    try
+    {
         CustomURL url = new CustomURL();
+        url = ourResources.getLinktoCrawl();
         
-        url = getLinktoCrawl();
-
-        // check its Robots
-        if (ourResources.isRobotsParsed(url.myURL.getHost()))
+        if (url != null)
+        {
             parseRobots(url);
 
-        if ( (url != null && ourResources.isNewUrl(url)) )
-        {
-           Elements links =  exctractAllLinks(url);
-           ourResources.addtoCurrentlyCrawling(url);
-           checkAndAdd(links,url);
-           synchronized(lock)
-           {
-            ourResources.addtoVisited(url);
-            lock.notify();
-           }
-           int visitedflag = 2;
-           Document doc = null;
-           insertUpdateUrlinDB(url.myURL.toString(),visitedflag,doc);
-        }
+            if (ourResources.isNewUrl(url))
+            {
+                Elements links =  exctractAllLinks(url);
+                ourResources.addtoCurrentlyCrawling(url);
+                checkAndAdd(links,url);
 
-        }
-        catch(Exception e)
-        {
-            System.out.println("Handled exception, discarding current url\nContinuing...");
-            //continue;
-        }
-   // }
+                synchronized(lock)
+                {
+                     ourResources.addtoVisited(url);
+                     lock.notify();  // for indexer to wake up and check the downloaded document
+                     System.out.println("Added to visited");
+                }
 
-System.out.println("Thread # "+ Thread.currentThread().getName() +" finished");
+                int visitedflag = 2;
+                Document doc = null;
+                updateUrlinDB(url.myURL.toString(),visitedflag,doc);
+            }
+        }
+    }
+    catch(Exception e)
+    {
+        System.out.println("Handled exception, discarding current url\n" + e.getMessage());
+        continue;
+    }
+    }
+      
+    System.out.println("Thread # "+ Thread.currentThread().getName() +" finished");
 }
 
-
-private synchronized CustomURL getLinktoCrawl()
-{
-    if ((ourResources.currentIteration%2) != 0)
-    {
-        return (ourResources.extracted.pollFirst());
-    }
-    else
-    {
-        return (ourResources.crawled.pollFirst());
-    }
-       
-}
 
 private  Elements exctractAllLinks(CustomURL urlseed) throws Exception
 {
@@ -88,14 +77,11 @@ private  Elements exctractAllLinks(CustomURL urlseed) throws Exception
     {
         String urlstring = urlseed.myURL.toString();
         Document doc = jsoupConnect(urlstring);
-        
-        // In case the interruption happened after downloading the document
-        if (ourResources.isNewUrl(urlseed))
-        {
-            int downloadflag = 1;
-            insertUpdateUrlinDB(urlstring,downloadflag,doc);
-            downloadHtml(doc,urlstring);
-        }
+               
+        int downloadflag = 1;
+        updateUrlinDB(urlstring,downloadflag,doc);
+        downloadHtml(doc,urlstring);
+
        return extractLinks(doc);
     }
     catch(Exception e)
@@ -106,34 +92,30 @@ private  Elements exctractAllLinks(CustomURL urlseed) throws Exception
     
 }
 
-// Do sql querries handle concurrency access ?
-private void checkAndAdd(Elements links,CustomURL url) throws Exception
-{
-    int downloadflag = 0;
-    try { 
-        
+
+private void checkAndAdd(Elements links,CustomURL url) throws Exception {
+try 
+{      
     for (Element link : links) 
     {
         if (!(link.attr("abs:href").equals("")) && !(link.attr("abs:href") == null) )
         {
             String linkstring = checkEndSlashUrl(link.attr("abs:href"));
             CustomURL urlc = new CustomURL(linkstring);
-            
-            if (!ourResources.hostParsedbyRobots.contains(urlc.myURL.getHost()))
-               parseRobots(urlc);
+            parseRobots(urlc);
             
             if (isUrlValid(urlc))
             {
                 if (getUrlId(linkstring) != -1)
                 {
-                   // System.out.println("added already");
+                    // normally don't need this query!
+                    // seems to be a bug in java for large number of elements!
+                    // an item can be in a list and contains returns false ! (debugged and checked it)
+                    System.out.println("added already");
                     continue;
                 }
-               if (!addasExtracted(urlc))
-                   continue;
-
-                Document doc = null;
-                insertUpdateUrlinDB(linkstring,downloadflag,doc);
+                ourResources.addasExtracted(urlc);
+                insertUrlinDB(linkstring);
             }
         }
     }
@@ -143,9 +125,13 @@ private void checkAndAdd(Elements links,CustomURL url) throws Exception
         System.out.println("Exception   " + e.getMessage());
         throw new Exception();
     }
-    catch(Exception e)
+    catch(SQLException e)
     {
-        
+        System.out.println("Exception " + e.getMessage());
+    }
+     catch(Exception e)
+    {
+        System.out.println("Exception   " + e.getMessage());
         throw new Exception();
     }
 }
@@ -164,19 +150,6 @@ private void checkNeedRecrawl()
     // the only check that will be made is to see if it has an ID or not in the database
     // or add the set of links to recrawl in a hashset to check by contains faster
 }
-
-private boolean addasExtracted(CustomURL url)
-{
-    if ((ourResources.currentIteration%2) != 0)
-    {
-        return ourResources.addtoCrawled(url);
-    }
-    else
-    {
-        return ourResources.addtoExtracted(url);
-    }
-}
-
 
 private String checkEndSlashUrl(String urlstr)
 {
@@ -227,9 +200,20 @@ private void downloadHtml(Document doc, String url) throws Exception
     try 
     {
         int id = getUrlId(url);
-        PrintWriter writer = new PrintWriter("html_docs/"+ Integer.toBinaryString(id) +".html", "UTF-8");
-        writer.print(doc);
-        writer.close();
+        String path = "html_docs/"+ Integer.toBinaryString(id) +".html";
+        
+        File f = new File(path);
+        
+        // if the file exits: either we downloaded it before
+        // or it is being used now by the indexer, so better leave it alone
+        // but in case of re-crawling we should return a boolean then !
+        
+        if( !f.exists()) 
+        {  
+            PrintWriter writer = new PrintWriter(path, "UTF-8");
+            writer.print(doc);
+            writer.close();
+        }
     }
     catch (FileNotFoundException fe)
     {
@@ -248,14 +232,37 @@ private int getUrlId(String url)
         return rt.getInt(1);
     }
     catch(SQLException sqle) {
-       //System.out.println("Sql Exception :"+sqle.getMessage());
-       //throw new Exception();
        return -1;
     }
     
 }
 
-private void insertUpdateUrlinDB (String url,int downloadedflag,Document doc) throws Exception
+private void insertUrlinDB (String url) throws Exception
+{
+    String query;
+    int downloadedflag = 0;
+    try{   
+        con.setAutoCommit(false);
+        PreparedStatement stp;
+
+        query = "Insert into Docs_URL (URL, Visited) Values (?,?)";
+        stp =  con.prepareStatement(query);
+        stp.setString(1, url);
+        stp.setInt(2, downloadedflag);
+             
+        stp.executeUpdate();
+        con.commit();
+
+    }
+    catch (SQLException sqle)
+    {
+        System.out.println("Sql Exception from insert:"+sqle.getMessage());
+        throw new Exception();
+    }
+}
+
+
+private void updateUrlinDB (String url,int downloadedflag,Document doc) throws Exception
 {
     String query;
     
@@ -264,12 +271,6 @@ private void insertUpdateUrlinDB (String url,int downloadedflag,Document doc) th
         PreparedStatement stp;
         
         switch (downloadedflag) {
-            case 0:
-                query = "Insert into Docs_URL (URL, Visited) Values (?,?)";
-                stp =  con.prepareStatement(query);
-                stp.setString(1, url);
-                stp.setInt(2, downloadedflag);
-                break;
             case 1:
                 String title = doc.title();
                 query = "Update Docs_URL Set Title = ? , Visited = ? Where URL = ?";
@@ -292,7 +293,7 @@ private void insertUpdateUrlinDB (String url,int downloadedflag,Document doc) th
     }
     catch (SQLException sqle)
     {
-        System.out.println("Sql Exception from insertUpdateUrlDB :"+sqle.getMessage());
+        System.out.println("Sql Exception from UpdateUrlDB :"+sqle.getMessage());
         throw new Exception();
     }
 }
@@ -327,8 +328,12 @@ private String trim(String s, int width) {
 }
 
 public void parseRobots(CustomURL urlc)
-    {
+{
 
+    if (ourResources.isRobotsParsed(urlc.myURL.getHost()))
+        return;
+    else
+    {
         String url_tovisit = urlc.myURL.getProtocol() + "://" + urlc.myURL.getHost();
         String url_robots = url_tovisit + "/robots.txt";
 
@@ -376,7 +381,7 @@ public void parseRobots(CustomURL urlc)
             }
             else
             {
-                System.out.println("Can't find robot.txt");
+                //System.out.println("Can't find robot.txt");
             }
 
 //            for (int i = 0; i < Disallowed_URLS.size(); i++) {
@@ -388,7 +393,8 @@ public void parseRobots(CustomURL urlc)
 
         catch(Exception e)
         {
-             System.out.println(e.getMessage());
+            // System.out.println(e.getMessage());
         }
+    }
     }
 }
