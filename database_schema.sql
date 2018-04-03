@@ -12,21 +12,6 @@ primary key(ID)
 );
 
 INSERT into Docs_URL (URL,Visited)
-VALUES ('http://dmoz-odp.org',0);
-
-INSERT into Docs_URL (URL,Visited)
-VALUES ('http://dmoz-odp.org/News',0);
-
-INSERT into Docs_URL (URL,Visited)
-VALUES ('http://dmoz-odp.org/Sports',0);
-
-INSERT into Docs_URL (URL,Visited)
-VALUES ('http://dmoz-odp.org/Computers',0)
-
-INSERT into Docs_URL (URL,Visited)
-VALUES ('http://dmoz-odp.org/Arts',0)
-
-INSERT into Docs_URL (URL,Visited)
 VALUES ('https://en.wikipedia.org/wiki/Main_Page',0);
 
 INSERT into Docs_URL (URL,Visited)
