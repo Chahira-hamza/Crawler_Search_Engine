@@ -39,8 +39,8 @@ public void run()
         url = getLinktoCrawl();
 
         // check its Robots
-//        if (ourResources.isRobotsParsed(url.myURL.getHost()))
-//            parseRobots(url);
+        if (ourResources.isRobotsParsed(url.myURL.getHost()))
+            parseRobots(url);
 
         if ( (url != null && ourResources.isNewUrl(url)) )
         {
@@ -119,14 +119,14 @@ private void checkAndAdd(Elements links,CustomURL url) throws Exception
             String linkstring = checkEndSlashUrl(link.attr("abs:href"));
             CustomURL urlc = new CustomURL(linkstring);
             
-//            if (!ourResources.hostParsedbyRobots.contains(urlc.myURL.getHost()))
-//               parseRobots(urlc);
+            if (!ourResources.hostParsedbyRobots.contains(urlc.myURL.getHost()))
+               parseRobots(urlc);
             
             if (isUrlValid(urlc))
             {
                 if (getUrlId(linkstring) != -1)
                 {
-                    System.out.println("Bug");
+                   // System.out.println("added already");
                     continue;
                 }
                if (!addasExtracted(urlc))
@@ -148,6 +148,21 @@ private void checkAndAdd(Elements links,CustomURL url) throws Exception
         
         throw new Exception();
     }
+}
+
+private void checkNeedRecrawl()
+{
+    // we have a query that selects from the database the urls
+    // that follow a certain criteria
+    // column linkRank was added in the Docs_URL schema for this purpose
+    // if linkRank is higher than a certain threshold
+    // we update its value in the database to zero, and update the visited to zero as well
+    // and we call the function addasExtracted(url) for it
+    // to be added in the proper place
+    // we will need to remove it from the visited, so it is a valid URL to be crawled
+    // it will then take its path normally in the extracted list
+    // the only check that will be made is to see if it has an ID or not in the database
+    // or add the set of links to recrawl in a hashset to check by contains faster
 }
 
 private boolean addasExtracted(CustomURL url)
