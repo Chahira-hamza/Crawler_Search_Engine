@@ -1,6 +1,6 @@
 # Crawler_Search_Engine
 
-The final file to be run is in this directory called Integrator.java
+The final file to be run is in this directory called Integrator.java with the schema database_schema.sql
 
 You will need to download the whole package, and add Jsoup library as an external JAR in your project
 You will also need to connect to a database. Our queries correspond to ms-sql queries.
