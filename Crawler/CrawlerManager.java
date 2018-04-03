@@ -17,16 +17,18 @@ public class CrawlerManager implements Runnable {
     int depthIteration;
     int threadNum;
     Connection con;
-
+    boolean tasksNotFinished;
+    Object lock;
     CrawlerResources myCrawlerResources;
     
-    public CrawlerManager(int depth, int threadnum, int maxDoc,Connection connection ) {
+    public CrawlerManager(int depth, int threadnum, int maxDoc,Connection connection, Object lock_) {
         
+    System.out.println("Crawler Manager created");
     CrawledMax      = maxDoc;
     depthIteration  = depth;
     threadNum       = threadnum;
     con             = connection;
-    
+    lock = lock_;
     }
     
     public void run()
@@ -39,15 +41,21 @@ public class CrawlerManager implements Runnable {
         // thread pool
         ExecutorService Executor =  Executors.newFixedThreadPool(threadNum);
     
-        while(tasksNotFinished)
+        while(!maxDocsReached())
         {
-            Executor.submit(new Crawler(0,0,myCrawlerResources));
+            while(currentIterationRunning() && !maxDocsReached())
+            {
+                Executor.submit(new Crawler(myCrawlerResources,con,lock));
+            }
+            
+            myCrawlerResources.currentIteration++;
+            
         }
-    
-        
+
         myCrawlerResources.printData();
-       
-     
+        
+        Executor.shutdown();
+
     }
     
     private void loadStatefromDB()
@@ -83,6 +91,24 @@ public class CrawlerManager implements Runnable {
    catch(SQLException sqle) {
        System.out.println("Sql Exception from load state :"+sqle.getMessage());
     }
+   catch (Exception e)
+   {
+       System.out.println("Exception from load state :"+e.getMessage());
+   }
     
 }
+   private boolean currentIterationRunning()
+{
+    if ( ((myCrawlerResources.currentIteration%2) != 0) )
+    {
+        return (!myCrawlerResources.extracted.isEmpty());
+    }
+    else
+        return (!myCrawlerResources.crawled.isEmpty());
+}
+   
+   private boolean maxDocsReached()
+   {
+      return  (myCrawlerResources.visited.size() >= CrawledMax);
+   }
 }

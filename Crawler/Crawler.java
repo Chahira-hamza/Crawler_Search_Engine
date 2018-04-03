@@ -7,8 +7,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.*;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.io.BufferedReader;
@@ -19,156 +17,67 @@ import java.net.URL;
 
 public class Crawler implements Runnable {
 
-    private static final String DBCLASSNAME = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
-    private static final String CONNECTION =
-			"jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=gam3astuff*;";
+    private Connection con;
+    private CrawlerResources ourResources;
+    private Object lock;
     
-    private static Connection con;
-   
-    private static LinkedList<CustomURL> extracted;
-    private static LinkedList<CustomURL> crawled;
-    private static LinkedList<CustomURL> currently;
-    private static LinkedList<CustomURL> visited;
-        
-    private static LinkedList<CustomURL> disallowedRobots;
-    private static LinkedList<CustomURL> allowedRobots;
-    
-    private static HashSet <String> hostParsedbyRobots;
-
-    private static int CrawledMax;      //5'000 pages
-    
-    private static int depthIteration;
-    private static int currentIteration;
-
-   
-    public static void main(String[] args) throws Exception {
- 
-    System.out.println("From Crawler version 2 Lists !");   
-    
-    try{
-        
-        int depth = 2;
-        int thread = 1;
-        
-        Crawler  crawler = new Crawler(depth,thread);
-        
-        crawler.run();
-      
-        System.out.println("Crawled sites = " + crawled.size());
-        System.out.println("Extracted sites = " + extracted.size());
-        System.out.println("Visited sites = " + visited.size());
-        System.out.println("Disallowed sites = " + disallowedRobots.size());
-        System.out.println("Allowed sites = " + allowedRobots.size());
-        
-        System.out.println("It works !");
-        con.close();
-
-    }
-    catch (Exception e)
-    {
-        System.out.println("Exception "+e.getMessage());
-    }
- }
-    
-//******************************************************************************
-    
-/* 
-Constructor
-Calls connecttoDatabase, throws exception if connection fails
-Initializes static variables declared 
-*/
-public Crawler(int depth, int threadnum) throws Exception
+public Crawler(CrawlerResources CR, Connection connection, Object lock_)
 { 
-    con = connecttoDB();
-    
-    crawled             = new LinkedList<>();
-    extracted           = new LinkedList<>();
-    currently           = new LinkedList<>();
-    visited             = new LinkedList<>(); 
-    disallowedRobots    = new LinkedList<>();
-    allowedRobots       = new LinkedList<>();
-    hostParsedbyRobots  = new HashSet<>();
-   
-    CrawledMax      = 5000;
-    depthIteration  = depth;
-    //threadNum       = threadnum;
-    
-    currentIteration = 1;
-    
-    loadStatefromDB();
+    con = connection;
+    ourResources = CR;
+    lock = lock_;
 }
-
-
 
 public void run() 
 {
-
-    while (true)
-    {
-        while (currentIterationRunning())
-        {
-            try{
-            // get link to crawl
-            CustomURL url = new CustomURL();
-
-            // synchronized
-            url = getLinktoCrawl();
-
-            // check its Robots
-            if (!hostParsedbyRobots.contains(url.myURL.getHost()))
-               // parseRobots(url);
-            
-            if ( (url != null && isNewUrl(url)) )
-            {
-               Elements links =  exctractAllLinks(url);
-               addtoCurrentlyCrawling(url);
-               checkAndAdd(links,url);
-               addtoVisited(url);
-               int visitedflag = 2;
-               Document doc = null;
-               insertUpdateUrlinDB(url.myURL.toString(),visitedflag,doc);
-            }
-
-            }
-            catch(Exception e)
-            {
-                System.out.println("Handled exception, discarding current url\nContinuing...");
-                continue;
-            }
-        }
+//    while (currentIterationRunning())
+//    {
         
-        if (currentIteration == 1)      //desired depth
+    try{
+        CustomURL url = new CustomURL();
+        
+        url = getLinktoCrawl();
+
+        // check its Robots
+//        if (ourResources.isRobotsParsed(url.myURL.getHost()))
+//            parseRobots(url);
+
+        if ( (url != null && ourResources.isNewUrl(url)) )
         {
-            currentIteration ++;
+           Elements links =  exctractAllLinks(url);
+           ourResources.addtoCurrentlyCrawling(url);
+           checkAndAdd(links,url);
+           synchronized(lock)
+           {
+            ourResources.addtoVisited(url);
+            lock.notify();
+           }
+           int visitedflag = 2;
+           Document doc = null;
+           insertUpdateUrlinDB(url.myURL.toString(),visitedflag,doc);
         }
-        else
-            break;
-    }
-          
 
-    System.out.println("Thread # "+ Thread.currentThread().getName() +" finished");
-    
+        }
+        catch(Exception e)
+        {
+            System.out.println("Handled exception, discarding current url\nContinuing...");
+            //continue;
+        }
+   // }
+
+System.out.println("Thread # "+ Thread.currentThread().getName() +" finished");
 }
 
-private boolean currentIterationRunning()
-{
-    if ( ((currentIteration%2) != 0) )
-    {
-        return (!extracted.isEmpty());
-    }
-    else
-        return (!crawled.isEmpty());
-}
 
 private synchronized CustomURL getLinktoCrawl()
 {
-    if ((currentIteration%2) != 0)
+    if ((ourResources.currentIteration%2) != 0)
     {
-        return (extracted.pollFirst());
+        return (ourResources.extracted.pollFirst());
     }
     else
     {
-        return (crawled.pollFirst());
+        return (ourResources.crawled.pollFirst());
     }
        
 }
@@ -181,19 +90,13 @@ private  Elements exctractAllLinks(CustomURL urlseed) throws Exception
         Document doc = jsoupConnect(urlstring);
         
         // In case the interruption happened after downloading the document
-        if (isNewUrl(urlseed))
+        if (ourResources.isNewUrl(urlseed))
         {
             int downloadflag = 1;
             insertUpdateUrlinDB(urlstring,downloadflag,doc);
-
             downloadHtml(doc,urlstring);
         }
-        
-        Elements links = extractLinks(doc);
-
-        //System.out.println("Links = "+links.size());
-        return links;
-        
+       return extractLinks(doc);
     }
     catch(Exception e)
     {
@@ -216,29 +119,20 @@ private void checkAndAdd(Elements links,CustomURL url) throws Exception
             String linkstring = checkEndSlashUrl(link.attr("abs:href"));
             CustomURL urlc = new CustomURL(linkstring);
             
-            if (!hostParsedbyRobots.contains(urlc.myURL.getHost()))
-                //parseRobots(urlc);
+//            if (!ourResources.hostParsedbyRobots.contains(urlc.myURL.getHost()))
+//               parseRobots(urlc);
             
             if (isUrlValid(urlc))
             {
-                
                 if (getUrlId(linkstring) != -1)
                 {
                     System.out.println("Bug");
-
-                    System.out.println("extracted "+ extracted.contains(urlc));
-                    System.out.println("crawled "+ crawled.contains(urlc));
-                    System.out.println("currently "+ currently.contains(urlc));
-                    System.out.println("visited "+ visited.contains(urlc));
                     continue;
                 }
-                
-                // synchronized
                if (!addasExtracted(urlc))
                    continue;
 
                 Document doc = null;
-    
                 insertUpdateUrlinDB(linkstring,downloadflag,doc);
             }
         }
@@ -258,35 +152,14 @@ private void checkAndAdd(Elements links,CustomURL url) throws Exception
 
 private boolean addasExtracted(CustomURL url)
 {
-    if ((currentIteration%2) != 0)
+    if ((ourResources.currentIteration%2) != 0)
     {
-        return addtoCrawled(url);
+        return ourResources.addtoCrawled(url);
     }
     else
     {
-        return addtoExtracted(url);
+        return ourResources.addtoExtracted(url);
     }
-}
-
-private synchronized void addtoCurrentlyCrawling(CustomURL url)
-{
-    currently.add(url);
-}
-
-private synchronized void addtoVisited(CustomURL url)
-{
-    visited.add(url);
-    currently.remove(url);
-}
-
-private synchronized boolean addtoExtracted(CustomURL url)
-{
-    return extracted.add(url);
-}
-
-private synchronized boolean addtoCrawled(CustomURL url)
-{
-    return crawled.add(url);
 }
 
 
@@ -303,75 +176,14 @@ private String checkEndSlashUrl(String urlstr)
     
 }
 
-//Establish connection with the Database   
-private static Connection connecttoDB() throws Exception
-{
-    try{   
-        Class.forName(DBCLASSNAME);
-        
-        Connection con = DriverManager.getConnection(CONNECTION);
-        System.out.println("Connected to database !");
-        return con;
-    }
-    catch(ClassNotFoundException e) 
-    {
-        System.out.println("Class Not Found Exception :" + e.getMessage());
-        throw new Exception();
-    }
-    catch(SQLException sqle) {
-       System.out.println("Sql Exception :"+sqle.getMessage());
-       throw new Exception();
-    }
-}
-  
-private void loadStatefromDB() throws Exception
-{
- 
-    // initially database has seed list ?
-   try{
-     
-    con.setAutoCommit(false);
-    String load_query = "SELECT URL,Visited from Docs_URL ORDER BY ID;";
-    PreparedStatement load_st =  con.prepareStatement(load_query);
-    ResultSet load_result = load_st.executeQuery();
-    con.commit();
-    
-    while(load_result.next())
-    {        
-        CustomURL url = new CustomURL(load_result.getString(1));
-       
-        int downloadflag = load_result.getInt(2);
-        
-        switch (downloadflag) {
-            case 0:
-                addtoExtracted(url);
-                //addtoVisited(url);
-                break;
-            case 1:
-                addtoCrawled(url);
-                addtoVisited(url);
-                break;
-            default:
-                addtoVisited(url);
-                break;
-        }
-    }
-   }
-   catch(SQLException sqle) {
-       System.out.println("Sql Exception from load state :"+sqle.getMessage());
-       throw new Exception();
-    }
-    
-}
-
-private static Elements extractLinks(Document doc)
+private Elements extractLinks(Document doc)
 {
     Elements links = doc.select("a[href]");
     print("\nLinks: (%d)", links.size());
     return links;
 }
 
-private static Document jsoupConnect(String urlseed) throws Exception
+private Document jsoupConnect(String urlseed) throws Exception
 {
     try{
         Document doc = Jsoup.connect(urlseed).get();
@@ -395,7 +207,7 @@ private static Document jsoupConnect(String urlseed) throws Exception
     }
 }
     
-private static void downloadHtml(Document doc, String url) throws Exception
+private void downloadHtml(Document doc, String url) throws Exception
 {
     try 
     {
@@ -411,7 +223,7 @@ private static void downloadHtml(Document doc, String url) throws Exception
     }
 }
 
-private static int getUrlId(String url) throws Exception
+private int getUrlId(String url)
 {
     try{
         String query = "Select ID from Docs_URL Where URL = '" + url +"';";
@@ -428,7 +240,7 @@ private static int getUrlId(String url) throws Exception
     
 }
 
-private static void insertUpdateUrlinDB (String url,int downloadedflag,Document doc) throws Exception
+private void insertUpdateUrlinDB (String url,int downloadedflag,Document doc) throws Exception
 {
     String query;
     
@@ -470,44 +282,17 @@ private static void insertUpdateUrlinDB (String url,int downloadedflag,Document 
     }
 }
 
-
-private static void updateDB(String url,Document doc, int updateflag) throws Exception
+private boolean isUrlValid(CustomURL url)
 {
-    try{
-    String title = doc.title();
-    String query = "Update Docs_URL Set Title = '" + trim(title,50) + "', Downloaded = " + updateflag + "Where URL = '" + url +"';";
-    Statement st_ = con.createStatement();
-    st_.executeUpdate(query);
-    }
-    catch (SQLException sqle)
-    {
-        System.out.println("Sql Exception :"+sqle.getMessage());
-        throw new Exception();
-    }
-}
-
-private synchronized boolean isUrlValid(CustomURL url)
-{
-    if (disallowedRobots.contains(url))
+    if (ourResources.isDisllowed(url))
         return false;
     else
     {
-       // return ( (!isSelfRedirect(url) && isNewUrl(url)) && allowedRobots.contains(url));
-        return ( (!isSelfRedirect(url) && isNewUrl(url)));
+        return ( (!isSelfRedirect(url) && ourResources.isNewUrl(url)));
     }
 }
 
-// should be synchronized
-private  boolean isNewUrl (CustomURL url)
-{
-    if (crawled.contains(url) || extracted.contains(url) || visited.contains(url) || currently.contains(url))
-        return false;
-    else
-        return true;
-}
-
-
-private static boolean isSelfRedirect(CustomURL url)
+private  boolean isSelfRedirect(CustomURL url)
 {
     Pattern patt = Pattern.compile("#");
     Matcher match = patt.matcher(url.myURL.toString());
@@ -515,28 +300,18 @@ private static boolean isSelfRedirect(CustomURL url)
     return match.find();
 }
 
-private static void print(String msg, Object... args) {
+private void print(String msg, Object... args) {
         System.out.println(String.format(msg, args));
 }
 
-private static String trim(String s, int width) {
+private String trim(String s, int width) {
         if (s.length() > width)
                 return s.substring(0, width-1) + ".";
         else
                 return s;
 }
 
-private synchronized static void addDisallowed(CustomURL url)
-{
-    disallowedRobots.add(url);
-}
-
-private synchronized static void addAllowed(CustomURL url)
-{
-    allowedRobots.add(url);
-}
-
-public void parseRobots(CustomURL urlc) throws Exception
+public void parseRobots(CustomURL urlc)
     {
 
         String url_tovisit = urlc.myURL.getProtocol() + "://" + urlc.myURL.getHost();
@@ -573,13 +348,13 @@ public void parseRobots(CustomURL urlc) throws Exception
                         if (line.toLowerCase().startsWith("disallow:")) 
                         {
                             CustomURL disURL = new CustomURL(url_tovisit + line.substring(10));
-                            addDisallowed(disURL);
+                            ourResources.addDisallowed(disURL);
                         } 
-                        else if (line.toLowerCase().startsWith("allow:")) 
-                        {
-                            CustomURL allURL = new CustomURL(url_tovisit + line.substring(7));
-                            addAllowed(allURL);   
-                        }
+//                        else if (line.toLowerCase().startsWith("allow:")) 
+//                        {
+//                            CustomURL allURL = new CustomURL(url_tovisit + line.substring(7));
+//                            addAllowed(allURL);   
+//                        }
                     }
                     
                 }
@@ -593,12 +368,12 @@ public void parseRobots(CustomURL urlc) throws Exception
 //                System.out.println(Disallowed_URLS.get(i));
 //            }
 
-                 hostParsedbyRobots.add(urlc.myURL.getHost());
+                 ourResources.addHostParsed(urlc.myURL.getHost());
         }
 
-        catch(MalformedURLException e)
+        catch(Exception e)
         {
-
+             System.out.println(e.getMessage());
         }
     }
 }
