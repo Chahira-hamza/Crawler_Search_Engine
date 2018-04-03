@@ -25,32 +25,32 @@ public class Integrator {
     
         try
         {
-    con = connecttoDB();
-    
-        // get input from user thread num, depth, max docs to crawl
-    /*
-        Scanner reader = new Scanner(System.in);  // Reading from System.in
-        System.out.println("Enter the desired number of threads: ");
-        threadNum = reader.nextInt(); // Scans the next token of the input as an int.
+        con = connecttoDB();
 
-        System.out.println("Enter the desired deph and the maximum document downloaded: ");
-        depth = reader.nextInt(); // Scans the next token of the input as an int.
-        maxDocs = reader.nextInt();
+            // get input from user thread num, depth, max docs to crawl
+        
+            Scanner reader = new Scanner(System.in);  // Reading from System.in
+            System.out.println("Enter the desired number of threads: ");
+            threadNum = reader.nextInt(); // Scans the next token of the input as an int.
 
-        reader.close();
-    */ 
+            System.out.println("Enter the desired deph and the maximum document downloaded: ");
+            depth = reader.nextInt(); // Scans the next token of the input as an int.
+            maxDocs = reader.nextInt();
 
-        threadNum = 2;
-        depth = 1;
-        maxDocs = 5;
-        lock = new Object();
+            reader.close();
+        
+//
+//            threadNum = 2;
+//            depth = 1;
+//            maxDocs = 5;
+            lock = new Object();
 
-        Thread CrawlerManag = new Thread(new CrawlerManager(depth,threadNum,maxDocs,con,lock));
-        Thread IndexerThread = new Thread(new Indexer(con,lock));
-        CrawlerManag.start();
-        IndexerThread.start();
-        IndexerThread.join();
-        CrawlerManag.join();
+            Thread CrawlerManag = new Thread(new CrawlerManager(depth,threadNum,maxDocs,con,lock));
+            Thread IndexerThread = new Thread(new Indexer(con,lock));
+            CrawlerManag.start();
+            IndexerThread.start();
+            IndexerThread.join();
+            CrawlerManag.join();
 
         System.out.println("Closing connection!!!");
         con.close();
