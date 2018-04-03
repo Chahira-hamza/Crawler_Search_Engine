@@ -1,6 +1,4 @@
 
-use search_engine;
-
 CREATE TABLE Docs_URL (
 ID int NOT NULL IDENTITY(1,1),
 Title varchar(50), 
@@ -60,17 +58,3 @@ CONSTRAINT FK_TextDoc FOREIGN KEY (Doc_ID)
     ON DELETE CASCADE    
     ON UPDATE CASCADE
 	);
-	
-	///// for delete all values and resest auto increment 
-delete from Docs_URL;
-DBCC CHECKIDENT(Docs_URL, RESEED, 0); 
-
-delete from DocText;
-
-delete from Words;
-
-
-drop table WordPostions;
-drop table Words;
-drop table DocText;
-DROP TABLE Docs_URL;
