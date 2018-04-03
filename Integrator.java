@@ -2,8 +2,7 @@
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Scanner;
 
 
 /**
@@ -14,7 +13,7 @@ public class Integrator {
     
     private static final String DBCLASSNAME = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
     private static final String CONNECTION =
-			"jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=gam3astuff*;";
+			"jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=;password=;";
     
     private static int threadNum;
     private static int depth;
@@ -27,9 +26,21 @@ public class Integrator {
     con = connecttoDB();
     
     // get input from user thread num, depth, max docs to crawl
-    threadNum = 4;
+/*
+    Scanner reader = new Scanner(System.in);  // Reading from System.in
+    System.out.println("Enter the desired number of threads: ");
+    threadNum = reader.nextInt(); // Scans the next token of the input as an int.
+    
+    System.out.println("Enter the desired deph and the maximum document downloaded: ");
+    depth = reader.nextInt(); // Scans the next token of the input as an int.
+    maxDocs = reader.nextInt();
+    
+    reader.close();
+*/ 
+    
+    threadNum = 2;
     depth = 1;
-    maxDocs = 10;
+    maxDocs = 5;
     lock = new Object();
     
     Thread CrawlerManag = new Thread(new CrawlerManager(depth,threadNum,maxDocs,con,lock));
@@ -39,7 +50,7 @@ public class Integrator {
     IndexerThread.join();
     CrawlerManag.join();
     
-        System.out.println("Closing connection!!!");
+    System.out.println("Closing connection!!!");
     con.close();
     
 }
