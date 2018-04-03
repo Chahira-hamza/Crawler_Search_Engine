@@ -21,37 +21,44 @@ public class Integrator {
     public static Connection con;
     public static Object lock;
     
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
     
+        try
+        {
     con = connecttoDB();
     
-    // get input from user thread num, depth, max docs to crawl
-/*
-    Scanner reader = new Scanner(System.in);  // Reading from System.in
-    System.out.println("Enter the desired number of threads: ");
-    threadNum = reader.nextInt(); // Scans the next token of the input as an int.
-    
-    System.out.println("Enter the desired deph and the maximum document downloaded: ");
-    depth = reader.nextInt(); // Scans the next token of the input as an int.
-    maxDocs = reader.nextInt();
-    
-    reader.close();
-*/ 
-    
-    threadNum = 2;
-    depth = 1;
-    maxDocs = 5;
-    lock = new Object();
-    
-    Thread CrawlerManag = new Thread(new CrawlerManager(depth,threadNum,maxDocs,con,lock));
-    Thread IndexerThread = new Thread(new Indexer(con,lock));
-    CrawlerManag.start();
-    IndexerThread.start();
-    IndexerThread.join();
-    CrawlerManag.join();
-    
-    System.out.println("Closing connection!!!");
-    con.close();
+        // get input from user thread num, depth, max docs to crawl
+    /*
+        Scanner reader = new Scanner(System.in);  // Reading from System.in
+        System.out.println("Enter the desired number of threads: ");
+        threadNum = reader.nextInt(); // Scans the next token of the input as an int.
+
+        System.out.println("Enter the desired deph and the maximum document downloaded: ");
+        depth = reader.nextInt(); // Scans the next token of the input as an int.
+        maxDocs = reader.nextInt();
+
+        reader.close();
+    */ 
+
+        threadNum = 2;
+        depth = 1;
+        maxDocs = 5;
+        lock = new Object();
+
+        Thread CrawlerManag = new Thread(new CrawlerManager(depth,threadNum,maxDocs,con,lock));
+        Thread IndexerThread = new Thread(new Indexer(con,lock));
+        CrawlerManag.start();
+        IndexerThread.start();
+        IndexerThread.join();
+        CrawlerManag.join();
+
+        System.out.println("Closing connection!!!");
+        con.close();
+        }
+    catch(Exception e)
+    {
+         System.out.println(e.getMessage());
+    }
     
 }
     
