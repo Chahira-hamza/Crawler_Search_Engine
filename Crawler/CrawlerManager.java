@@ -5,6 +5,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -13,49 +15,94 @@ import java.util.concurrent.Executors;
  */
 public class CrawlerManager implements Runnable {
     
-    int CrawledMax;
-    int depthIteration;
+    Object lock;
     int threadNum;
     Connection con;
+    Thread workers[];
     boolean tasksNotFinished;
-    Object lock;
     CrawlerResources myCrawlerResources;
+    Future resultWorkers[];
     
     public CrawlerManager(int depth, int threadnum, int maxDoc,Connection connection, Object lock_) {
         
     System.out.println("Crawler Manager created");
-    CrawledMax      = maxDoc;
-    depthIteration  = depth;
-    threadNum       = threadnum;
-    con             = connection;
-    lock = lock_;
+    
+    threadNum   = threadnum;
+    con         = connection;
+    lock        = lock_;
+    
+    myCrawlerResources  = new CrawlerResources(depth,maxDoc);
+    workers             = new Thread[threadNum];
+    resultWorkers       = new Future[threadNum];
+    
     }
     
     public void run()
     {
-        // object that will passed to all threads
-        myCrawlerResources = new CrawlerResources();
-        
         loadStatefromDB();
+        System.out.println("finished loading DB");
         
         // thread pool
         ExecutorService Executor =  Executors.newFixedThreadPool(threadNum);
-    
-        while(!maxDocsReached())
-        {
-            while(currentIterationRunning() && !maxDocsReached())
+        //int taskNum = myCrawlerResources.depth * threadNum;
+        
+       for (int i=0;i<myCrawlerResources.depth;i++)
+       {
+            for (int j=0; j<threadNum;j++)
+                resultWorkers[j] = Executor.submit(new Crawler(myCrawlerResources,con,lock));
+            
+            for (int j=0;j<threadNum; j++)
             {
-                Executor.submit(new Crawler(myCrawlerResources,con,lock));
+               try{
+                   resultWorkers[j].get();
+                }
+               catch(Exception e)
+               {
+                   System.out.println(e.getMessage());
+               }
             }
             
-            myCrawlerResources.currentIteration++;
-            
+            myCrawlerResources.incrementIteration();
+            System.out.println("Incremented Iteration = "+ myCrawlerResources.currentIteration);
         }
-
-        myCrawlerResources.printData();
-        
+       
         Executor.shutdown();
 
+        try{
+        Executor.awaitTermination(1,TimeUnit.HOURS);
+        }
+        catch(InterruptedException e)
+        {
+            System.out.println(e.getMessage());
+        }
+        
+        myCrawlerResources.printData();
+        
+                // creating threads
+//       while (myCrawlerResources.depthNotReached() && myCrawlerResources.docsNotReached())
+//       {
+//           for (int i=0; i<threadNum; i++)
+//        {
+//           workers[i] = new Thread(new Crawler(myCrawlerResources, con, lock));
+//           workers[i].start();
+//        } 
+//            try
+//            {
+//                for (int i=0; i<threadNum; i++)
+//                {
+//                   workers[i].join();
+//                }
+//            }
+//            catch(Exception e)
+//            {
+//                System.err.println(e.getMessage());
+//            }  
+//           
+//            myCrawlerResources.currentIteration++;
+//       }
+       
+      
+        
     }
     
     private void loadStatefromDB()
@@ -76,14 +123,11 @@ public class CrawlerManager implements Runnable {
         int downloadflag = load_result.getInt(2);
         
         switch (downloadflag) {
-            case 0:
-                myCrawlerResources.extracted.add(url);
-                break;
-            case 1:
-                myCrawlerResources.crawled.add(url);
+            case 2:
+                myCrawlerResources.visited.add(url);
                 break;
             default:
-                myCrawlerResources.visited.add(url);
+                myCrawlerResources.crawled.add(url);
                 break;
         }
     }
@@ -97,18 +141,5 @@ public class CrawlerManager implements Runnable {
    }
     
 }
-   private boolean currentIterationRunning()
-{
-    if ( ((myCrawlerResources.currentIteration%2) != 0) )
-    {
-        return (!myCrawlerResources.extracted.isEmpty());
-    }
-    else
-        return (!myCrawlerResources.crawled.isEmpty());
-}
-   
-   private boolean maxDocsReached()
-   {
-      return  (myCrawlerResources.visited.size() >= CrawledMax);
-   }
+    
 }

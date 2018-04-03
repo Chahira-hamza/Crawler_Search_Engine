@@ -20,8 +20,10 @@ public class CrawlerResources {
     protected  HashSet <String> hostParsedbyRobots;
 
     protected  int currentIteration;
+    int depth;
+    int maxcrawled;
     
-    public CrawlerResources() {
+    public CrawlerResources(int depth_, int maxdoc) {
     
     crawled             = new LinkedList<>();
     extracted           = new LinkedList<>();
@@ -31,13 +33,16 @@ public class CrawlerResources {
    // allowedRobots       = new LinkedList<>();
     hostParsedbyRobots  = new HashSet<>();
     
-    currentIteration = 1;
+    currentIteration = 0;
+    depth = depth_;
+    maxcrawled = maxdoc;
     
     }
     
     
     public void printData()
     {
+        System.out.println("Last Iteration = " + currentIteration);
         System.out.println("Crawled sites = " + crawled.size());
         System.out.println("Extracted sites = " + extracted.size());
         System.out.println("Visited sites = " + visited.size());
@@ -66,7 +71,7 @@ protected synchronized boolean isRobotsParsed(String host)
 
 protected synchronized void addtoCurrentlyCrawling(CustomURL url)
 {
-currently.add(url);
+    currently.add(url);
 }
 
 protected synchronized void addtoVisited(CustomURL url)
@@ -95,5 +100,61 @@ protected synchronized boolean addHostParsed(String url)
     return hostParsedbyRobots.add(url);
 }
 
+protected synchronized boolean currentIterationRunning()
+{
+    
+    if ( ((currentIteration%2) != 0) )
+    {
+        return (!extracted.isEmpty());
+    }
+    else
+        return (!crawled.isEmpty());
+}
+   
+protected synchronized void incrementIteration()
+{
+    currentIteration ++;
+}
+
+protected synchronized boolean depthNotReached()
+{
+    if (currentIteration >= depth)
+        return false;
+    else
+        return true;
+}
+
+protected synchronized boolean docsNotReached()
+{
+    if (visited.size() >= maxcrawled)
+        return false;
+    else
+        return true;
+}
+
+protected synchronized CustomURL getLinktoCrawl()
+{
+    if ((currentIteration%2) != 0)
+    {
+        return (extracted.pollFirst());
+    }
+    else
+    {
+        return (crawled.pollFirst());
+    }
+       
+}
+
+protected synchronized boolean addasExtracted(CustomURL url)
+{
+    if ((currentIteration%2) != 0)
+    {
+        return addtoCrawled(url);
+    }
+    else
+    {
+        return addtoExtracted(url);
+    }
+}
 
 }

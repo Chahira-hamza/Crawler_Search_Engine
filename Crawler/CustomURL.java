@@ -2,6 +2,8 @@
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  *
@@ -51,5 +53,17 @@ public class CustomURL {
         return hash;
     }
     
+    
+//    private static void splitUrlfromProtocol(String[] url)
+//{
+//    Pattern patt = Pattern.compile("http(s)?://(www\\.)?");
+//    Matcher match = patt.matcher(url[0]);
+//    
+//    if (match.find())
+//    {
+//        url[1] = match.group(0);
+//        url[0] = url[0].replaceFirst(match.group(0),"");
+//    }
+//}
     
 }
