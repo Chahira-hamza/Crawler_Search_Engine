@@ -28,7 +28,8 @@ VALUES ('http://www.nile.eg',0);
 CREATE TABLE Words
 (   Doc_ID int NOT NULL,
 	Word_ID int NOT NULL ,
-    word nvarchar(20) Not NULL, 
+   	 Stemmed_Word nvarchar(20) Not NULL, 
+   	 Word nvarchar(20) Not NULL, 
 	Rankw bigint Not Null,
 	PRIMARY KEY (Doc_ID,Word_ID),    
 CONSTRAINT FK_worddoc FOREIGN KEY (Doc_ID) REFERENCES Docs_URL(ID)   
