@@ -22,16 +22,14 @@ import org.jsoup.select.Elements;
 public class Indexer implements Runnable {
 
 // Create a variable for the connection string.
-//    private static String connectionUrl =
-//    "jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=gam3astuff*;";
+   private static String connectionUrl =
+    "jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=root;";
 
     static Connection con = null;
-    //	    static Statement stmt = null;
-    //	    static ResultSet rs = null;
     static String Doc_Text;
     static int Doc_ID;
     static String Driver="com.microsoft.sqlserver.jdbc.SQLServerDriver";
-    static String Directory="html_docs/";
+    static String Directory="E:\\Java\\Search_Engine\\Docs\\";
     static Path folder = Paths.get(Directory);
     static String filename;
     static Document doc ;
@@ -61,7 +59,7 @@ public class Indexer implements Runnable {
     PreparedStatement WordStmt = null;
     PreparedStatement PostionsStmt=null;
 
-    String Insert_Words = "INSERT INTO Words (Doc_ID,Word_ID,word,Rankw)  VALUES  (?,?,?,?)";
+    String Insert_Words = "INSERT INTO Words (Doc_ID,Word_ID,Stemmed_Word,Word,Rankw)  VALUES  (?,?,?,?,?)";
     String Insert_Postions="INSERT INTO WordPostions (Doc_ID, Word_ID,Pos) VALUES (?,?,?)";
     int i=1;
     try {
@@ -73,7 +71,8 @@ public class Indexer implements Runnable {
         WordStmt.setLong(1, DocID);
         WordStmt.setLong(2, i);
         WordStmt.setString(3, e.getKey());
-        WordStmt.setLong(4, e.getValue().Rank.longValue());
+        WordStmt.setString(4, e.getValue().Word);
+		WordStmt.setLong(5, e.getValue().Rank.longValue());
         WordStmt.executeUpdate();
 
         PostionsStmt.setLong(1, Doc_ID);
@@ -229,7 +228,7 @@ finally {
     public static void Edit_Text(String Text) {
     // System.out.println(Text);
     String[] words = Text.split("\\P{Alpha}+");
-
+   // AList=words;
     aList = new ArrayList<String>(Arrays.asList(words));
     Iterator<String> it = aList.iterator();
 
@@ -268,7 +267,7 @@ finally {
                 // System.out.println(root);
                 if (!WordDict.containsKey(root))
                 {
-                    WordDict.put(root, new Word(RankDict.VDict.get("keyword"),-1));
+                    WordDict.put(root, new Word(RankDict.VDict.get("keyword"),word,-1));
                 }
 
                 else
@@ -304,7 +303,7 @@ finally {
 
             if (!WordDict.containsKey(root))		 // check exists or not
             {
-                WordDict.put(root, new Word(ValueDict.VDict.get("title"), index));
+                WordDict.put(root, new Word(ValueDict.VDict.get("title"), word,index));
 
             }
 
@@ -344,7 +343,7 @@ finally {
                     root = stemmer.stem(word);
                     // System.out.println(root);
                     if (!WordDict.containsKey(root)) {
-                        WordDict.put(root, new Word(RankDict.VDict.get("h" + n), index));
+                        WordDict.put(root, new Word(RankDict.VDict.get("h" + n),word, index));
                         // WDict.put(root, RankDict.VDict.get("h" + n));
                     }
 
@@ -383,7 +382,7 @@ finally {
             index = aList.indexOf(w);
             if (!WordDict.containsKey(root)) {
 
-                WordDict.put(root, new Word(RankDict.VDict.get("p"), index));
+                WordDict.put(root, new Word(RankDict.VDict.get("p"), w,index));
             }
 
             else {
@@ -476,6 +475,7 @@ finally {
 //                }
 
                 WordDict.clear();												// clear the words Dictionary
+                aList.clear();
                 boolean sucess= input.delete();									// deleting the file
                 if(sucess)
                 {
