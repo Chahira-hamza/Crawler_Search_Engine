@@ -1,5 +1,7 @@
 
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -12,15 +14,27 @@ import java.util.regex.Pattern;
 public class CustomURL {
     
     URL myURL;
-    
-    public CustomURL(String url) throws MalformedURLException 
+    int linkRank;
+ 
+    public CustomURL(String url) throws MalformedURLException, URISyntaxException 
     {
-        myURL = new URL(url);
+        myURL = new URI(url).normalize().toURL();
+        linkRank = 0;
     }
     
     public CustomURL() 
     {
-       
+       linkRank = 0;
+    }
+    
+    public void incrementLinkRank()
+    {
+        linkRank ++;
+    }
+    
+    public int getLinkRank()
+    {
+        return linkRank;
     }
     
     @Override
@@ -43,16 +57,25 @@ public class CustomURL {
         CustomURL c2 = (CustomURL)this;
         
         // Compare the data members and return accordingly 
-        return (c2.myURL.getHost()+c2.myURL.getFile()).equals(c.myURL.getHost()+c.myURL.getFile());
+        String string1 = c2.myURL.getHost()+c2.myURL.getFile();
+        String string2 = c.myURL.getHost()+c.myURL.getFile();
+        
+        string1 = string1.toLowerCase();
+        string2 = string2.toLowerCase();
+        
+        return string1.equals(string2);
     }
+
 
     @Override
     public int hashCode() {
-        int hash = 5;
-        hash = 67 * hash + Objects.hashCode(this.myURL);
+        int hash = 7;
+        hash = 11 * hash + Objects.hashCode(this.myURL);
+        hash = 11 * hash + this.linkRank;
         return hash;
     }
     
+        
     
 //    private static void splitUrlfromProtocol(String[] url)
 //{
@@ -65,5 +88,6 @@ public class CustomURL {
 //        url[0] = url[0].replaceFirst(match.group(0),"");
 //    }
 //}
+
     
 }
