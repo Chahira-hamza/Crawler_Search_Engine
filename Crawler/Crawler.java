@@ -58,6 +58,11 @@ public void run()
                 Document doc = null;
                 updateUrlinDB(url.myURL.toString(),visitedflag,doc);
             }
+            else
+            {
+                url.incrementLinkRank();
+                updateLinkRankDB(url);  
+            }
         }
     }
     catch(Exception e)
@@ -104,18 +109,26 @@ try
             CustomURL urlc = new CustomURL(linkstring);
             parseRobots(urlc);
             
-            if (isUrlValid(urlc))
+            if (!ourResources.isNewUrl(urlc) && getUrlId(urlc.myURL.toString()) != -1)
             {
-                if (getUrlId(linkstring) != -1)
+                url.incrementLinkRank();
+                updateLinkRankDB(url);     
+            }
+            
+            if (isUrlValid(urlc))  
+            {
+                if (getUrlId(urlc.myURL.toString()) != -1)
                 {
                     // normally don't need this query!
                     // for debugging !
                     System.out.println("added already");
+                    urlc.incrementLinkRank();
+                    updateLinkRankDB(urlc);
                     continue;
                 }
                 
                 ourResources.addasExtracted(urlc);
-                insertUrlinDB(linkstring);
+                insertUrlinDB(urlc.myURL.toString());
             }
         }
     }
@@ -140,6 +153,13 @@ private void checkNeedRecrawl()
 {
     // we have a query that selects from the database the urls
     // that follow a certain criteria
+    
+    // if we extract a link more than once, can update its linkrank (increase it)
+    // run and check the values to get an idea on how to set the criteria
+    // this solution will need another query
+    
+    // check if extracted before -> is NewURL ?
+    
     // column linkRank was added in the Docs_URL schema for this purpose
     // if linkRank is higher than a certain threshold
     // we update its value in the database to zero, and update the visited to zero as well
@@ -245,10 +265,11 @@ private void insertUrlinDB (String url) throws Exception
         con.setAutoCommit(false);
         PreparedStatement stp;
 
-        query = "Insert into Docs_URL (URL, Visited) Values (?,?)";
+        query = "Insert into Docs_URL (URL, Visited, linkRank) Values (?,?,?)";
         stp =  con.prepareStatement(query);
         stp.setString(1, url);
         stp.setInt(2, downloadedflag);
+        stp.setInt(3, 0);
              
         stp.executeUpdate();
         con.commit();
@@ -295,6 +316,28 @@ private void updateUrlinDB (String url,int downloadedflag,Document doc) throws E
     {
         System.out.println("Sql Exception from UpdateUrlDB :"+sqle.getMessage());
         throw new Exception();
+    }
+}
+
+private void updateLinkRankDB(CustomURL url)
+{
+    String query;
+    
+    try{   
+        con.setAutoCommit(false);
+        PreparedStatement stp;     
+        
+        query = "Update Docs_URL Set linkRank = ? Where URL = ?";
+        stp =  con.prepareStatement(query);
+        stp.setInt(1, url.getLinkRank());
+        stp.setString(2, url.myURL.toString());
+        stp.executeUpdate();
+        con.commit();
+
+    }
+    catch (SQLException sqle)
+    {
+        System.out.println("Sql Exception from UpdateLinkRankDB :"+sqle.getMessage());
     }
 }
 
