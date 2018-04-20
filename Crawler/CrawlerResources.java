@@ -1,4 +1,6 @@
 
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.LinkedList;
 
@@ -156,5 +158,15 @@ protected synchronized boolean addasExtracted(CustomURL url)
         return addtoExtracted(url);
     }
 }
+
+protected synchronized CustomURL removeAndGetFromVisited(String url) throws MalformedURLException, URISyntaxException
+{
+    CustomURL u = new CustomURL(url);
+    if (!visited.remove(u))
+        System.out.println("Error in removing url from visited  " + url );
+   
+    return u;
+}
+
 
 }

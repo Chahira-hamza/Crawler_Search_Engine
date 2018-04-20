@@ -15,11 +15,13 @@ public class CustomURL {
     
     URL myURL;
     int linkRank;
- 
+    boolean recrawling;
+    
     public CustomURL(String url) throws MalformedURLException, URISyntaxException 
     {
         myURL = new URI(url).normalize().toURL();
         linkRank = 0;
+        recrawling = false;
     }
     
     public CustomURL() 
@@ -35,6 +37,16 @@ public class CustomURL {
     public int getLinkRank()
     {
         return linkRank;
+    }
+    
+    public boolean getRecrawling()
+    {
+        return recrawling;
+    }
+    
+    public void setRecrawling(boolean b)
+    {
+        recrawling = b;
     }
     
     @Override
@@ -67,13 +79,7 @@ public class CustomURL {
     }
 
 
-    @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 11 * hash + Objects.hashCode(this.myURL);
-        hash = 11 * hash + this.linkRank;
-        return hash;
-    }
+
     
         
     
@@ -88,6 +94,15 @@ public class CustomURL {
 //        url[0] = url[0].replaceFirst(match.group(0),"");
 //    }
 //}
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 59 * hash + Objects.hashCode(this.myURL);
+        hash = 59 * hash + this.linkRank;
+        hash = 59 * hash + (this.recrawling ? 1 : 0);
+        return hash;
+    }
 
     
 }

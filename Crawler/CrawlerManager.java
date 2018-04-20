@@ -3,6 +3,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -62,8 +64,15 @@ public class CrawlerManager implements Runnable {
                }
             }
             
+            if (!myCrawlerResources.docsNotReached())
+                break;
+                
+            checkNeedRecrawl();
+            
             myCrawlerResources.incrementIteration();
             System.out.println("Incremented Iteration = "+ myCrawlerResources.currentIteration);
+
+            
         }
        
         Executor.shutdown();
@@ -142,4 +151,86 @@ public class CrawlerManager implements Runnable {
     
 }
     
+private void checkNeedRecrawl()
+{
+    try
+    {
+        List<String> recrawlLinks = getRecrawlLinksDB();
+
+        if (recrawlLinks != null)
+        {
+            for (int i=0; i<recrawlLinks.size(); i++)
+            {
+                CustomURL u = myCrawlerResources.removeAndGetFromVisited(recrawlLinks.get(i));
+                u.setRecrawling(true);
+                myCrawlerResources.addasExtracted(u);
+                updateVisitedDB(u);
+            }
+        }
+        else
+            System.out.println("Null Recrawling List");
+    }
+    catch (Exception e)
+    {
+        System.out.println(e.getMessage());
+    }
+}
+
+private List<String> getRecrawlLinksDB()
+{
+    try
+    {
+        con.setAutoCommit(false);
+        String loadQuery = "SELECT URL from Docs_URL WHERE  Visited = 2 and linkRank > "
+                + "( SELECT Avg(linkRank) "
+                + "FROM (SELECT distinct linkRank from Docs_URL) TMP );";
+        PreparedStatement loadSt =  con.prepareStatement(loadQuery);
+        ResultSet loadResult = loadSt.executeQuery();
+        con.commit();
+        
+        List<String> recrawlingLinks = new ArrayList<>();
+        
+        while (loadResult.next())
+        {         
+            recrawlingLinks.add(loadResult.getString(1));
+        }
+        
+        return recrawlingLinks;
+    }
+    catch(SQLException sqle) {
+       System.out.println("Sql Exception from load state :"+sqle.getMessage());
+       return null;
+    }
+   catch (Exception e)
+   {
+       System.out.println("Exception from load state :"+e.getMessage());
+       return null;
+   }
+}
+
+
+private void updateVisitedDB(CustomURL url)
+{
+  String query;
+    
+    try{   
+        con.setAutoCommit(false);
+        PreparedStatement stp;     
+        
+        query = "Update Docs_URL Set Visited = ? , linkRank = ? Where URL = ?";
+        stp =  con.prepareStatement(query);
+        
+        stp.setInt(1, 1);
+        stp.setInt(2, 0);
+        stp.setString(3, url.myURL.toString());
+        stp.executeUpdate();
+        con.commit();
+
+    }
+    catch (SQLException sqle)
+    {
+        System.out.println("Sql Exception from UpdateLinkRankDB :"+sqle.getMessage());
+    }   
+}
+
 }

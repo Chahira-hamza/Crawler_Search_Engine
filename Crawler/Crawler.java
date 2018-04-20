@@ -14,6 +14,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Crawler implements Runnable {
 
@@ -34,24 +36,33 @@ public void run()
     {      
     try
     {
-        CustomURL url = new CustomURL();
-        url = ourResources.getLinktoCrawl();
+        CustomURL url = ourResources.getLinktoCrawl();
         
         if (url != null)
         {
             parseRobots(url);
 
+            if (url.myURL.toString().equals("http://www.bbc.com"))
+                System.out.println("bbc.com");
+            
             if (ourResources.isNewUrl(url))
             {
+                if (url.getRecrawling())
+                {
+                    boolean reset = true;
+                    updateLinkRankDB(url,reset); 
+                }
+                
                 Elements links =  exctractAllLinks(url);
                 ourResources.addtoCurrentlyCrawling(url);
                 checkAndAdd(links,url);
 
                 synchronized(lock)
                 {
-                     ourResources.addtoVisited(url);
-                     lock.notify();  // for indexer to wake up and check the downloaded document
-                     System.out.println("Added to visited");
+                    url.setRecrawling(false);
+                    ourResources.addtoVisited(url);
+                    lock.notify();  // for indexer to wake up and check the downloaded document
+                    System.out.println("Added to visited");
                 }
 
                 int visitedflag = 2;
@@ -61,7 +72,8 @@ public void run()
             else
             {
                 url.incrementLinkRank();
-                updateLinkRankDB(url);  
+                boolean reset = false;
+                updateLinkRankDB(url,reset);  
             }
         }
     }
@@ -86,19 +98,18 @@ private  Elements exctractAllLinks(CustomURL urlseed) throws Exception
         int downloadflag = 1;
         updateUrlinDB(urlstring,downloadflag,doc);
         downloadHtml(doc,urlstring);
-
+        
        return extractLinks(doc);
     }
     catch(Exception e)
     {
         System.out.println("Exception " + e.getMessage());
         throw new Exception();
-    }
-    
+    }    
 }
 
 
-private void checkAndAdd(Elements links,CustomURL url) throws Exception {
+private void checkAndAdd(Elements links,CustomURL urlParent) throws Exception {
 try 
 {      
     for (Element link : links) 
@@ -109,10 +120,11 @@ try
             CustomURL urlc = new CustomURL(linkstring);
             parseRobots(urlc);
             
-            if (!ourResources.isNewUrl(urlc) && getUrlId(urlc.myURL.toString()) != -1)
+            if (!ourResources.isNewUrl(urlc) && getUrlId(urlc.myURL.toString()) != -1 && !urlParent.getRecrawling())
             {
-                url.incrementLinkRank();
-                updateLinkRankDB(url);     
+                urlc.incrementLinkRank();
+                boolean reset = false;
+                updateLinkRankDB(urlc,reset);     
             }
             
             if (isUrlValid(urlc))  
@@ -123,7 +135,7 @@ try
                     // for debugging !
                     System.out.println("added already");
                     urlc.incrementLinkRank();
-                    updateLinkRankDB(urlc);
+                    updateLinkRankDB(urlc,false);
                     continue;
                 }
                 
@@ -149,27 +161,8 @@ try
     }
 }
 
-private void checkNeedRecrawl()
-{
-    // we have a query that selects from the database the urls
-    // that follow a certain criteria
-    
-    // if we extract a link more than once, can update its linkrank (increase it)
-    // run and check the values to get an idea on how to set the criteria
-    // this solution will need another query
-    
-    // check if extracted before -> is NewURL ?
-    
-    // column linkRank was added in the Docs_URL schema for this purpose
-    // if linkRank is higher than a certain threshold
-    // we update its value in the database to zero, and update the visited to zero as well
-    // and we call the function addasExtracted(url) for it
-    // to be added in the proper place
-    // we will need to remove it from the visited, so it is a valid URL to be crawled
-    // it will then take its path normally in the extracted list
-    // the only check that will be made is to see if it has an ID or not in the database
-    // or add the set of links to recrawl in a hashset to check by contains faster
-}
+
+
 
 private String checkEndSlashUrl(String urlstr)
 {
@@ -319,7 +312,7 @@ private void updateUrlinDB (String url,int downloadedflag,Document doc) throws E
     }
 }
 
-private void updateLinkRankDB(CustomURL url)
+private void updateLinkRankDB(CustomURL url, boolean reset)
 {
     String query;
     
@@ -329,7 +322,12 @@ private void updateLinkRankDB(CustomURL url)
         
         query = "Update Docs_URL Set linkRank = ? Where URL = ?";
         stp =  con.prepareStatement(query);
-        stp.setInt(1, url.getLinkRank());
+        
+        if (reset)
+             stp.setInt(1,0);
+        else
+            stp.setInt(1, url.getLinkRank());
+        
         stp.setString(2, url.myURL.toString());
         stp.executeUpdate();
         con.commit();
