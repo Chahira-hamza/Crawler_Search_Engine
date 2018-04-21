@@ -9,8 +9,8 @@ linkRank int,
 primary key(ID)
 );
 
-INSERT into Docs_URL (URL,Visited)
-VALUES ('https://en.wikipedia.org/wiki/Main_Page',0);
+INSERT into Docs_URL (URL,Visited,linkRank)
+VALUES ('https://en.wikipedia.org/wiki/Main_Page',0,0);
 
 INSERT into Docs_URL (URL,Visited)
 VALUES ('https://www.theguardian.com',0);
