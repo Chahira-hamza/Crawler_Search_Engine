@@ -47,12 +47,6 @@ public void run()
             
             if (ourResources.isNewUrl(url))
             {
-                if (url.getRecrawling())
-                {
-                    boolean reset = true;
-                    updateLinkRankDB(url,reset); 
-                }
-                
                 Elements links =  exctractAllLinks(url);
                 ourResources.addtoCurrentlyCrawling(url);
                 checkAndAdd(links,url);
@@ -69,12 +63,12 @@ public void run()
                 Document doc = null;
                 updateUrlinDB(url.myURL.toString(),visitedflag,doc);
             }
-            else
-            {
-                url.incrementLinkRank();
-                boolean reset = false;
-                updateLinkRankDB(url,reset);  
-            }
+//            else
+//            {
+//                // url.incrementLinkRank();
+//                boolean reset = false;
+//                updateLinkRankDB(url,reset);  
+//            }
         }
     }
     catch(Exception e)
@@ -122,9 +116,10 @@ try
             
             if (!ourResources.isNewUrl(urlc) && getUrlId(urlc.myURL.toString()) != -1 && !urlParent.getRecrawling())
             {
-                urlc.incrementLinkRank();
+               // urlc.incrementLinkRank();
                 boolean reset = false;
-                updateLinkRankDB(urlc,reset);     
+                updateLinkRankDB(urlc,reset); 
+                continue;
             }
             
             if (isUrlValid(urlc))  
@@ -320,15 +315,10 @@ private void updateLinkRankDB(CustomURL url, boolean reset)
         con.setAutoCommit(false);
         PreparedStatement stp;     
         
-        query = "Update Docs_URL Set linkRank = ? Where URL = ?";
+        query = "Update Docs_URL Set linkRank = linkRank + 1  Where URL = ?";
         stp =  con.prepareStatement(query);
-        
-        if (reset)
-             stp.setInt(1,0);
-        else
-            stp.setInt(1, url.getLinkRank());
-        
-        stp.setString(2, url.myURL.toString());
+       // stp.setInt(1, url.getLinkRank());
+        stp.setString(1, url.myURL.toString());
         stp.executeUpdate();
         con.commit();
 

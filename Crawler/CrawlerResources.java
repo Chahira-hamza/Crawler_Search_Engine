@@ -147,6 +147,8 @@ protected synchronized CustomURL getLinktoCrawl()
        
 }
 
+
+
 protected synchronized boolean addasExtracted(CustomURL url)
 {
     if ((currentIteration%2) != 0)
@@ -165,6 +167,21 @@ protected synchronized CustomURL removeAndGetFromVisited(String url) throws Malf
     if (!visited.remove(u))
         System.out.println("Error in removing url from visited  " + url );
    
+    return u;
+}
+
+
+protected CustomURL removeAndGet(String url) throws MalformedURLException, URISyntaxException
+{
+    CustomURL u = new CustomURL(url);
+    
+    if (extracted.contains(u))
+        extracted.remove(u);
+    else if (crawled.contains(u))
+        crawled.remove(u);
+    else
+        visited.remove(u);
+    
     return u;
 }
 

@@ -161,8 +161,10 @@ private void checkNeedRecrawl()
         {
             for (int i=0; i<recrawlLinks.size(); i++)
             {
-                CustomURL u = myCrawlerResources.removeAndGetFromVisited(recrawlLinks.get(i));
+               // CustomURL u = myCrawlerResources.removeAndGetFromVisited(recrawlLinks.get(i));
+                CustomURL u = myCrawlerResources.removeAndGet(recrawlLinks.get(i));
                 u.setRecrawling(true);
+                u.setLinkRank(loadLinkRank(u));
                 myCrawlerResources.addasExtracted(u);
                 updateVisitedDB(u);
             }
@@ -181,7 +183,7 @@ private List<String> getRecrawlLinksDB()
     try
     {
         con.setAutoCommit(false);
-        String loadQuery = "SELECT URL from Docs_URL WHERE  Visited = 2 and linkRank > "
+        String loadQuery = "SELECT URL from Docs_URL WHERE Visited = 1 and linkRank > "
                 + "( SELECT Avg(linkRank) "
                 + "FROM (SELECT distinct linkRank from Docs_URL) TMP );";
         PreparedStatement loadSt =  con.prepareStatement(loadQuery);
@@ -217,20 +219,43 @@ private void updateVisitedDB(CustomURL url)
         con.setAutoCommit(false);
         PreparedStatement stp;     
         
-        query = "Update Docs_URL Set Visited = ? , linkRank = ? Where URL = ?";
+        //query = "Update Docs_URL Set Visited = ? , linkRank = ? Where URL = ?";
+        query = "Update Docs_URL Set Visited = ?  Where URL = ?";
         stp =  con.prepareStatement(query);
         
         stp.setInt(1, 1);
-        stp.setInt(2, 0);
-        stp.setString(3, url.myURL.toString());
+        stp.setString(2, url.myURL.toString());
         stp.executeUpdate();
         con.commit();
 
     }
     catch (SQLException sqle)
     {
-        System.out.println("Sql Exception from UpdateLinkRankDB :"+sqle.getMessage());
+        System.out.println("Sql Exception from UpdateVisitedDB :"+sqle.getMessage());
     }   
+}
+
+
+private int loadLinkRank(CustomURL u)
+{
+    try{
+     
+    con.setAutoCommit(false);
+    String load_query = "SELECT linkRank from Docs_URL where URL = ?;";
+    PreparedStatement load_st =  con.prepareStatement(load_query);
+    load_st.setString(1, u.myURL.toString());
+    ResultSet load_result = load_st.executeQuery();
+    con.commit();
+    
+    load_result.next();
+    return load_result.getInt(1);
+    
+    }
+    catch(Exception e)
+    {
+        System.out.println(e.getMessage());
+        return 0;
+    }
 }
 
 }
