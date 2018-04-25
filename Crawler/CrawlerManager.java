@@ -4,11 +4,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -50,6 +53,8 @@ public class CrawlerManager implements Runnable {
         
        for (int i=0;i<myCrawlerResources.depth;i++)
        {
+            myCrawlerResources.setListToBeRanked();
+            
             for (int j=0; j<threadNum;j++)
                 resultWorkers[j] = Executor.submit(new Crawler(myCrawlerResources,con,lock));
             
@@ -69,12 +74,24 @@ public class CrawlerManager implements Runnable {
                 
             checkNeedRecrawl();
             
+            LinkedList<CustomURL> [] toBeRanked = myCrawlerResources.getListToBeRanked();
+            // send it to Ranker
+            
+            Thread ranker = new Thread(new Ranker(myCrawlerResources,con,toBeRanked));
+            ranker.start();
+            
             myCrawlerResources.incrementIteration();
             System.out.println("Incremented Iteration = "+ myCrawlerResources.currentIteration);
 
             
         }
        
+        if (!myCrawlerResources.docsNotReached())
+        {
+            LinkedList<CustomURL> [] toBeRanked = myCrawlerResources.getListToBeRanked();
+            Thread ranker = new Thread(new Ranker(myCrawlerResources,con,toBeRanked));
+            ranker.start();
+        }
         Executor.shutdown();
 
         try{
@@ -84,6 +101,7 @@ public class CrawlerManager implements Runnable {
         {
             System.out.println(e.getMessage());
         }
+        
         
         myCrawlerResources.printData();
         
@@ -114,7 +132,7 @@ public class CrawlerManager implements Runnable {
         
     }
     
-    private void loadStatefromDB()
+private void loadStatefromDB()
 {
  
    try{

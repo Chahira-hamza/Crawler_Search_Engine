@@ -15,6 +15,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class Crawler implements Runnable {
@@ -42,14 +43,15 @@ public void run()
         {
             parseRobots(url);
 
-            if (url.myURL.toString().equals("http://www.bbc.com"))
-                System.out.println("bbc.com");
+//            if (url.myURL.toString().equals("http://www.bbc.com"))
+//                System.out.println("bbc.com");
             
             if (ourResources.isNewUrl(url))
             {
+                int indexRankingList = ourResources.addElementToBeRanked(url);
                 Elements links =  exctractAllLinks(url);
                 ourResources.addtoCurrentlyCrawling(url);
-                checkAndAdd(links,url);
+                checkAndAdd(links,url,indexRankingList);
 
                 synchronized(lock)
                 {
@@ -103,22 +105,24 @@ private  Elements exctractAllLinks(CustomURL urlseed) throws Exception
 }
 
 
-private void checkAndAdd(Elements links,CustomURL urlParent) throws Exception {
+private void checkAndAdd(Elements links,CustomURL urlParent, int indexRanked) throws Exception {
 try 
-{      
+{    
+    
     for (Element link : links) 
     {
         if (!(link.attr("abs:href").equals("")) && !(link.attr("abs:href") == null) )
         {
             String linkstring = checkEndSlashUrl(link.attr("abs:href"));
             CustomURL urlc = new CustomURL(linkstring);
+            ourResources.addChildLinkToBeRanked(indexRanked, urlc);
             parseRobots(urlc);
             
             if (!ourResources.isNewUrl(urlc) && getUrlId(urlc.myURL.toString()) != -1 && !urlParent.getRecrawling())
             {
                // urlc.incrementLinkRank();
                 boolean reset = false;
-                updateLinkRankDB(urlc,reset); 
+                updateLinkRankDB(urlc); 
                 continue;
             }
             
@@ -130,11 +134,12 @@ try
                     // for debugging !
                     System.out.println("added already");
                     urlc.incrementLinkRank();
-                    updateLinkRankDB(urlc,false);
+                    updateLinkRankDB(urlc);
                     continue;
                 }
                 
                 ourResources.addasExtracted(urlc);
+               
                 insertUrlinDB(urlc.myURL.toString());
             }
         }
@@ -253,11 +258,12 @@ private void insertUrlinDB (String url) throws Exception
         con.setAutoCommit(false);
         PreparedStatement stp;
 
-        query = "Insert into Docs_URL (URL, Visited, linkRank) Values (?,?,?)";
+        query = "Insert into Docs_URL (URL, Visited, linkRank,pageRank) Values (?,?,?,?)";
         stp =  con.prepareStatement(query);
         stp.setString(1, url);
         stp.setInt(2, downloadedflag);
         stp.setInt(3, 0);
+        stp.setFloat(4, 1);
              
         stp.executeUpdate();
         con.commit();
@@ -292,6 +298,7 @@ private void updateUrlinDB (String url,int downloadedflag,Document doc) throws E
                 query = "Update Docs_URL Set Visited = ? Where URL = ? ";
                 stp =  con.prepareStatement(query);
                 stp.setInt(1, downloadedflag);
+               // stp.setBoolean(2, false);
                 stp.setString(2, url);
                 break;
         }
@@ -307,7 +314,7 @@ private void updateUrlinDB (String url,int downloadedflag,Document doc) throws E
     }
 }
 
-private void updateLinkRankDB(CustomURL url, boolean reset)
+private void updateLinkRankDB(CustomURL url)
 {
     String query;
     
@@ -318,9 +325,10 @@ private void updateLinkRankDB(CustomURL url, boolean reset)
         query = "Update Docs_URL Set linkRank = linkRank + 1  Where URL = ?";
         stp =  con.prepareStatement(query);
        // stp.setInt(1, url.getLinkRank());
-        stp.setString(1, url.myURL.toString());
-        stp.executeUpdate();
-        con.commit();
+       //stp.setFloat(1, childRank); 
+       stp.setString(1, url.myURL.toString());
+       stp.executeUpdate();
+       con.commit();
 
     }
     catch (SQLException sqle)

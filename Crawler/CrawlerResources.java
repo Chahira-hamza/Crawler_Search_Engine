@@ -18,12 +18,16 @@ public class CrawlerResources {
         
     protected  LinkedList<CustomURL> disallowedRobots;
     //protected static LinkedList<CustomURL> allowedRobots;
+   
     
     protected  HashSet <String> hostParsedbyRobots;
 
     protected  int currentIteration;
     int depth;
     int maxcrawled;
+    
+    protected LinkedList<CustomURL> [] toBeRanked;
+    protected int indexToBeRanked;
     
     public CrawlerResources(int depth_, int maxdoc) {
     
@@ -34,6 +38,8 @@ public class CrawlerResources {
     disallowedRobots    = new LinkedList<>();
    // allowedRobots       = new LinkedList<>();
     hostParsedbyRobots  = new HashSet<>();
+    
+   
     
     currentIteration = 0;
     depth = depth_;
@@ -148,6 +154,19 @@ protected synchronized CustomURL getLinktoCrawl()
 }
 
 
+protected synchronized int getCountLinkstoCrawl()
+{
+    if ((currentIteration%2) != 0)
+    {
+        return extracted.size();
+    }
+    else
+    {
+        return crawled.size();
+    }
+       
+}
+
 
 protected synchronized boolean addasExtracted(CustomURL url)
 {
@@ -185,5 +204,33 @@ protected CustomURL removeAndGet(String url) throws MalformedURLException, URISy
     return u;
 }
 
+protected void setListToBeRanked()
+{
+    int linksToCrawl = getCountLinkstoCrawl();
+    toBeRanked = new LinkedList[linksToCrawl];
+    
+    for (int i=0; i<linksToCrawl; i++)
+    {
+        toBeRanked[i] = new LinkedList<>();
+    }
+    
+    indexToBeRanked = 0;
+}
+
+protected synchronized int addElementToBeRanked(CustomURL url)
+{
+    toBeRanked[indexToBeRanked].add(url);
+    return indexToBeRanked ++;
+}
+
+protected synchronized void addChildLinkToBeRanked(int indexParent, CustomURL url)
+{
+    toBeRanked[indexParent].add(url);
+}
+
+protected synchronized LinkedList<CustomURL>[] getListToBeRanked()
+{
+    return toBeRanked;
+}
 
 }
