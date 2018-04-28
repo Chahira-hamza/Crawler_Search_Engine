@@ -1,0 +1,74 @@
+@font-face{
+	font-family: "Harry Potter";
+	src: url('HARRP.ttf');
+}
+
+header{
+	padding-top: 0.74vh;
+	padding-left: 0.42vw;
+}
+
+body{
+}
+
+#SEname{
+	font-family: HARRP, "Harry Potter";
+	font-size: 5vw;
+	margin: 160px 0px 0px 0px;
+	width: 27vw;
+}
+
+input[name=Lumos]{
+	font-family: HARRP, "Harry Potter";
+	font-size:1.2vw;
+	height:2.4vw;
+	width:9vw;
+	margin: 10px 5px 20px 20px;
+	text-align: center;
+	padding: 0.40vw 1.5vw;
+	background-color: #f2f2f2;
+	border: 1px solid #f2f2f2;
+	color: #757575;
+    font-weight: bold;
+}
+
+input[name="Felix Felicis"]{
+	font-family: HARRP, "Harry Potter";
+	font-size:1.2vw;
+	height:2.4vw;
+	width:9vw;
+	margin: 10px 20px 20px 5px;
+	text-align: center;
+	padding: 0.40vw 1.5vw;
+	background-color: #f2f2f2;
+	border: 1px solid #f2f2f2;
+	color: #757575;
+    font-weight: bold;	
+}
+
+input[type=text]{
+	width:40vw;
+	height:2.5vw;
+	border-top: none;
+	font-size: 1.85vw;
+}
+
+#piclink{
+	width: 3vw;
+	height:3vw;
+}
+
+#fblink{
+	width: 2vw;
+	height:2vw;
+}
+
+#alink{
+	width: 3vw;
+	height:2vw;
+}
+
+#ollink{
+	width: 2.5vw;
+	height:2.5vw;
+}
