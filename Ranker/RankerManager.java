@@ -44,6 +44,9 @@ public class RankerManager implements Runnable {
        {
             calculatePageRank();
             writeRanksToFile(i);
+            
+            // switch between oldpageRank and pageRank
+            setOldPR();
        
        }
         System.out.println("Ranking is complete ! ");
@@ -62,10 +65,22 @@ public class RankerManager implements Runnable {
             for (int i=0;i<outgoing;i++)
             { 
                 CustomURL child = graphURL.getNeighbors().get(parent).get(i);
-                float rank = (parent.getOldPageRank()/graphURL.outDegree().get(parent));
+                float rank = (parent.getOldPageRank()/outgoing);
                 child.updatepageRank(rank);
             }
         }
+        
+        // add damping factor here for all nodes
+        // newrank = 1-d + d(rank)
+         for (Iterator<Map.Entry<CustomURL, List<CustomURL>>> it = graphURL.getNeighbors().entrySet().iterator(); it.hasNext();) 
+        {
+            Map.Entry<CustomURL,List<CustomURL>> entry = it.next();
+            CustomURL parent = entry.getKey();
+            //int size = graphURL.getNeighbors().size();
+            parent.setPageRank((float) (0.15 + parent.getPageRank()*0.85));
+            
+        }
+        
     }
     
      
@@ -89,4 +104,16 @@ public class RankerManager implements Runnable {
             System.out.println(e.getMessage());
         }
      }
+    
+    protected void setOldPR()
+    {
+         for (Iterator<Map.Entry<CustomURL, List<CustomURL>>> it = graphURL.getNeighbors().entrySet().iterator(); it.hasNext();) 
+        {
+            Map.Entry<CustomURL,List<CustomURL>> entry = it.next();
+            CustomURL parent = entry.getKey();
+            parent.setOldPageRankNewPR();
+            
+        }
+    }
+    
 }
