@@ -11,16 +11,21 @@ import java.util.regex.Pattern;
  *
  * @author chahira
  */
+
 public class CustomURL {
     
     URL myURL;
     int linkRank;
     boolean recrawling;
+    float pageRank;
+    float oldPageRank;
     
     public CustomURL(String url) throws MalformedURLException, URISyntaxException 
     {
         myURL = new URI(url).normalize().toURL();
         linkRank = 0;
+        pageRank = 1;
+        oldPageRank = 1;
         recrawling = false;
     }
     
@@ -34,9 +39,39 @@ public class CustomURL {
         linkRank ++;
     }
     
+    public float getOldPageRank()
+    {
+        return oldPageRank;
+    }
+    
+    public void setOldPageRankNewPR()
+    {
+        this.oldPageRank = this.pageRank;
+    }
+    
     public int getLinkRank()
     {
         return linkRank;
+    }
+    
+    public void setLinkRank(int rank)
+    {
+        linkRank = rank;
+    }
+    
+    public void updatepageRank(float rank)
+    {
+        pageRank += rank;
+    }
+    
+     public float getPageRank()
+    {
+        return pageRank;
+    }
+    
+    public void setPageRank(float rank)
+    {
+        pageRank = rank;
     }
     
     public boolean getRecrawling()
