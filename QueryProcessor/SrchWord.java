@@ -3,26 +3,45 @@ public class SrchWord {
 	
 	public  String Word;
 	
-	public  ArrayList<Integer> DocsID=new ArrayList<Integer>();
+	public  ArrayList< DocID> DocsID;
+	public int IDf;
 	
-	public SrchWord(String w,int p)
+	
+	
+	public SrchWord(String w,DocID d)
 	{
-		//Rank=r;
+		
 		Word=w;
 		
-		if(p!=-1)
-		{	
-			DocsID.add(p);
-		}
+		
+		 DocsID=new ArrayList< DocID>();
+		DocsID.add(d);
 	}
 	
 	
 	
-	void AddDocsID(int p)
+
+	void AddDocsID(DocID p)
 	{
 		DocsID.add(p);
 		
 	}
 	
 
+	void PrintSrchWord()
+	{
+		System.out.println("word : "+Word );
+		
+		for( DocID d : DocsID)
+		{
+			System.out.println(" Positions  in DocId: "+d.ID);
+			System.out.println("WordID: "+d.WordID+"  WRank : "+d.tf);
+			
+			d.Printpos();
+			
+		}
+		
+		
+	}
+	
 }

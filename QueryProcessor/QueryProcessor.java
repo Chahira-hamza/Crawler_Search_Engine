@@ -66,9 +66,33 @@ public class QueryProcessor {
 		 */
 	}
 
+	public static ArrayList<Integer> GetPos(int WID, int DocId) throws SQLException {
+		PreparedStatement GetPosStmt = null;
+		String SelectPos = " Select Pos from WordPostions WHERE Word_ID=? and Doc_ID= ?";
+
+		ArrayList<Integer> posList = new ArrayList<Integer>();
+		GetPosStmt = con.prepareStatement(SelectPos);
+		GetPosStmt.setInt(1, WID);
+		GetPosStmt.setInt(2, DocId);
+
+		ResultSet rs;
+		rs = GetPosStmt.executeQuery();
+		boolean f = rs.next();
+		if (f) {
+			posList.add(rs.getInt(1));
+			while (rs.next()) {
+				posList.add(rs.getInt(1));
+			}
+
+		}
+		return posList;
+
+	}
 	public static void GetDoc_StemWord(String IN) throws SQLException {
 		PreparedStatement SelectWordStmt = null;
-		String Select_Docs = " SELECT  Doc_ID FROM Words where Stemmed_Word= ?";
+		// " SELECT Doc_ID FROM Words where Stemmed_Word= ?";
+		String Select_Docs = "SELECT   Word, Word_ID ,Rankw,Doc_ID   FROM Words where Stemmed_Word= ?";
+		String SelectPos = " Select Pos from WordPostions WHERE Word_ID=? and Doc_ID= ?";
 
 		FilterStmt(IN);
 		for (String element : SrchStmt) {
@@ -80,49 +104,76 @@ public class QueryProcessor {
 
 			ResultSet rs;
 			rs = SelectWordStmt.executeQuery();
-
+			int i = 0;
 			if (!WordList.containsKey(root)) {
 				boolean f = rs.next();
 				if (f) {
-					WordList.put(root, new SrchWord(element, rs.getInt(1)));
+					WordList.put(element, new SrchWord(element, new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2))));
+
+					ArrayList<Integer> pp = GetPos(rs.getInt(2), rs.getInt(4));
+					for (int e : pp) {
+						WordList.get(element).DocsID.get(i).AddPos(e);
+					}
 					while (rs.next()) {
-						System.out.println(rs.getInt(1));
-						WordList.get(root).AddDocsID(rs.getInt(1));
+
+						i++;
+						WordList.get(element).AddDocsID(new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2)));
+
+						pp = GetPos(rs.getInt(2), rs.getInt(4));
+
+						for (int e : pp) {
+							WordList.get(element).DocsID.get(i).AddPos(e);
+						}
 
 					}
-				} else {
-
-					System.out.println(element + " is not found in DB");
 				}
+			} else {
 
+				System.out.println(element + " is not found in DB");
 			}
-		}
 
+		}
 		SelectWordStmt.close();
 	}
 
+	
+
 	public static void GetDoc_Word(String IN) throws SQLException {
 		PreparedStatement SelectWordStmt = null;
-		String Select_Docs = " SELECT  Doc_ID FROM Words where Word= ?";
 
+		String Select_Docs = " SELECT   Word, Word_ID ,Rankw,Doc_ID   FROM Words where Word= ?";
+		String SelectPos = " Select Pos from WordPostions WHERE Word_ID=? and Doc_ID= ?";
 		FilterStmt(IN);
 		for (String element : SrchStmt) {
 
-			System.out.println(element);
+			// System.out.println(element);
 
 			SelectWordStmt = con.prepareStatement(Select_Docs);
 			SelectWordStmt.setString(1, element);
 
 			ResultSet rs;
 			rs = SelectWordStmt.executeQuery();
-
+			int i = 0;
 			if (!WordList.containsKey(element)) {
 				boolean f = rs.next();
 				if (f) {
-					WordList.put(element, new SrchWord(element, rs.getInt(1)));
+
+					WordList.put(element, new SrchWord(element, new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2))));
+
+					ArrayList<Integer> pp = GetPos(rs.getInt(2), rs.getInt(4));
+					for (int e : pp) {
+						WordList.get(element).DocsID.get(i).AddPos(e);
+					}
 					while (rs.next()) {
-						System.out.println(rs.getInt(1));
-						WordList.get(element).AddDocsID(rs.getInt(1));
+
+						i++;
+						WordList.get(element).AddDocsID(new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2)));
+
+						pp = GetPos(rs.getInt(2), rs.getInt(4));
+
+						for (int e : pp) {
+							WordList.get(element).DocsID.get(i).AddPos(e);
+						}
 
 					}
 				}
@@ -155,6 +206,13 @@ public class QueryProcessor {
 
 			else {
 				GetDoc_StemWord(InputStr);
+			}
+
+			for (Map.Entry<String, SrchWord> entry1 : WordList.entrySet()) {
+				System.out.println(entry1.getKey());
+				SrchWord w1 = entry1.getValue();
+				w1.PrintSrchWord();
+
 			}
 		}
 
