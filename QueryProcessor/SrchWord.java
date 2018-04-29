@@ -35,7 +35,7 @@ public class SrchWord {
 		for( DocID d : DocsID)
 		{
 			System.out.println(" Positions  in DocId: "+d.ID);
-			System.out.println("WordID: "+d.WordID+"  WRank : "+d.tf);
+			System.out.println("WordID: "+d.WordID+"  WRank : "+d.wrank+"  tf: "+d.tf);
 			
 			d.Printpos();
 			

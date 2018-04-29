@@ -4,12 +4,13 @@ public class DocID {
 
 	public  ArrayList<Integer> WordPos;
 	 public int ID;
-	 public int tf;
+	 public double tf;
+	 public double wrank;
 	 public int WordID; 
-	public DocID(int i ,int t, int Wid )
+	public DocID(int i ,double t, int Wid )
 	{
 		this.ID=i;
-		this.tf=t;
+		this.wrank=t;
 		WordID=Wid;
 		WordPos=new ArrayList<Integer>();
 		
@@ -24,6 +25,12 @@ public class DocID {
 	int getId()
 	{
 	  return this.ID;
+	}
+	
+	void set_tf(int l)
+	{
+		this.tf=this.wrank/l;
+		
 	}
 	
 	void Printpos()
