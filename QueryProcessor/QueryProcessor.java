@@ -88,6 +88,7 @@ public class QueryProcessor {
 		return posList;
 
 	}
+
 	public static void GetDoc_StemWord(String IN) throws SQLException {
 		PreparedStatement SelectWordStmt = null;
 		// " SELECT Doc_ID FROM Words where Stemmed_Word= ?";
@@ -135,8 +136,6 @@ public class QueryProcessor {
 		}
 		SelectWordStmt.close();
 	}
-
-	
 
 	public static void GetDoc_Word(String IN) throws SQLException {
 		PreparedStatement SelectWordStmt = null;
