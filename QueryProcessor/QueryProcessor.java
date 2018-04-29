@@ -23,7 +23,7 @@ public class QueryProcessor {
 	String inputString = "search engine";
 	private static String connectionUrl = "jdbc:sqlserver://localhost:1433;"
 			+ "databaseName=Indexer;user=sa;password=root"; // Declare the JDBC
-															// objects.
+	// objects.
 	static Connection con = null;
 	static String Driver = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 	static Stemmer stemmer = new Stemmer();
@@ -91,101 +91,155 @@ public class QueryProcessor {
 
 	public static void GetDoc_StemWord(String IN) throws SQLException {
 		PreparedStatement SelectWordStmt = null;
-		// " SELECT Doc_ID FROM Words where Stemmed_Word= ?";
+
 		String Select_Docs = "SELECT   Word, Word_ID ,Rankw,Doc_ID   FROM Words where Stemmed_Word= ?";
-		String SelectPos = " Select Pos from WordPostions WHERE Word_ID=? and Doc_ID= ?";
 
 		FilterStmt(IN);
-		for (String element : SrchStmt) {
-			String root = stemmer.stem(element);
-			System.out.println(element);
+		try {
+			for (String element : SrchStmt) {
+				String root = stemmer.stem(element);
+				System.out.println(element);
 
-			SelectWordStmt = con.prepareStatement(Select_Docs);
-			SelectWordStmt.setString(1, root);
+				con.setAutoCommit(false);
+				SelectWordStmt = con.prepareStatement(Select_Docs);
+				SelectWordStmt.setString(1, root);
 
-			ResultSet rs;
-			rs = SelectWordStmt.executeQuery();
-			int i = 0;
-			if (!WordList.containsKey(root)) {
-				boolean f = rs.next();
-				if (f) {
-					WordList.put(element, new SrchWord(element, new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2))));
+				ResultSet rs;
+				rs = SelectWordStmt.executeQuery();
+				con.commit();
+				int i = 0;
+				if (!WordList.containsKey(root)) {
+					boolean f = rs.next();
+					if (f) {
+						WordList.put(element,
+								new SrchWord(element, new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2))));
 
-					ArrayList<Integer> pp = GetPos(rs.getInt(2), rs.getInt(4));
-					for (int e : pp) {
-						WordList.get(element).DocsID.get(i).AddPos(e);
-					}
-					while (rs.next()) {
-
-						i++;
-						WordList.get(element).AddDocsID(new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2)));
-
-						pp = GetPos(rs.getInt(2), rs.getInt(4));
-
+						ArrayList<Integer> pp = GetPos(rs.getInt(2), rs.getInt(4));
 						for (int e : pp) {
 							WordList.get(element).DocsID.get(i).AddPos(e);
 						}
+						while (rs.next()) {
 
+							i++;
+							WordList.get(element).AddDocsID(new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2)));
+
+							pp = GetPos(rs.getInt(2), rs.getInt(4));
+
+							for (int e : pp) {
+								WordList.get(element).DocsID.get(i).AddPos(e);
+							}
+
+						}
 					}
-				}
-			} else {
+				} else {
 
-				System.out.println(element + " is not found in DB");
+					System.out.println(element + " is not found in DB");
+				}
+
+			}
+		}
+
+		catch (SQLException e) {
+
+			System.out.println("Sql Exception :" + e.getMessage());
+			if (con != null) {
+				try {
+					System.err.print("Transaction is being rolled back");
+					con.rollback();
+				} catch (SQLException excep) {
+
+					System.out.println("Sql Exception :" + e.getMessage());
+				}
+			}
+		}
+
+		finally {
+			if (SelectWordStmt != null) {
+				SelectWordStmt.close();
 			}
 
+			con.setAutoCommit(true);
 		}
-		SelectWordStmt.close();
 	}
 
 	public static void GetDoc_Word(String IN) throws SQLException {
 		PreparedStatement SelectWordStmt = null;
 
 		String Select_Docs = " SELECT   Word, Word_ID ,Rankw,Doc_ID   FROM Words where Word= ?";
-		String SelectPos = " Select Pos from WordPostions WHERE Word_ID=? and Doc_ID= ?";
+
 		FilterStmt(IN);
-		for (String element : SrchStmt) {
+		try {
+			for (String element : SrchStmt) {
 
-			// System.out.println(element);
+				// System.out.println(element);
+				con.setAutoCommit(false);
+				SelectWordStmt = con.prepareStatement(Select_Docs);
+				SelectWordStmt.setString(1, element);
 
-			SelectWordStmt = con.prepareStatement(Select_Docs);
-			SelectWordStmt.setString(1, element);
+				ResultSet rs;
+				rs = SelectWordStmt.executeQuery();
+				con.commit();
+				int i = 0;
+				if (!WordList.containsKey(element)) {
+					boolean f = rs.next();
+					if (f) {
 
-			ResultSet rs;
-			rs = SelectWordStmt.executeQuery();
-			int i = 0;
-			if (!WordList.containsKey(element)) {
-				boolean f = rs.next();
-				if (f) {
+						WordList.put(element,
+								new SrchWord(element, new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2))));
 
-					WordList.put(element, new SrchWord(element, new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2))));
-
-					ArrayList<Integer> pp = GetPos(rs.getInt(2), rs.getInt(4));
-					for (int e : pp) {
-						WordList.get(element).DocsID.get(i).AddPos(e);
-					}
-					while (rs.next()) {
-
-						i++;
-						WordList.get(element).AddDocsID(new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2)));
-
-						pp = GetPos(rs.getInt(2), rs.getInt(4));
-
+						ArrayList<Integer> pp = GetPos(rs.getInt(2), rs.getInt(4));
 						for (int e : pp) {
 							WordList.get(element).DocsID.get(i).AddPos(e);
 						}
+						while (rs.next()) {
 
+							i++;
+							WordList.get(element).AddDocsID(new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2)));
+
+							pp = GetPos(rs.getInt(2), rs.getInt(4));
+
+							for (int e : pp) {
+								WordList.get(element).DocsID.get(i).AddPos(e);
+							}
+
+						}
 					}
-				}
 
-				else {
+					else {
 
-					System.out.println(element + " is not found in DB");
+						System.out.println(element + " is not found in DB");
+					}
+
 				}
 
 			}
-
 		}
-		SelectWordStmt.close();
+
+		catch (SQLException e) {
+
+			System.out.println("Sql Exception :" + e.getMessage());
+			if (con != null) {
+				try {
+					System.err.print("Transaction is being rolled back");
+					con.rollback();
+				} catch (SQLException excep) {
+
+					System.out.println("Sql Exception :" + e.getMessage());
+				}
+			}
+		}
+
+		finally {
+			if (SelectWordStmt != null) {
+				SelectWordStmt.close();
+			}
+
+			con.setAutoCommit(true);
+		}
+
+	}
+
+	public static void TF_IDF() {
 
 	}
 
@@ -207,7 +261,9 @@ public class QueryProcessor {
 				GetDoc_StemWord(InputStr);
 			}
 
-			for (Map.Entry<String, SrchWord> entry1 : WordList.entrySet()) {
+			for (Map.Entry<String, SrchWord> entry1 : WordList.entrySet()) /// for
+				/// printing
+			{
 				System.out.println(entry1.getKey());
 				SrchWord w1 = entry1.getValue();
 				w1.PrintSrchWord();
