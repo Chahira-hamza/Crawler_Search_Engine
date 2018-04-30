@@ -89,30 +89,42 @@ public class DirectedGraph<V> {
     }
     
     
-    public void populate(LinkedList<CustomURL>[] list)
+public void populate(LinkedList<CustomURL>[] list, Map<String,Float> URLToRank)
+{
+    if (list.length == 0)
     {
-        if (list.length == 0)
+        System.out.print("List is empty");
+        return;
+    }
+
+    for (LinkedList<CustomURL> list1 : list) 
+    {
+        if (!list1.isEmpty())
         {
-            System.out.print("List is empty");
-            return;
-        }
-        
-        for (LinkedList<CustomURL> list1 : list) 
-        {
-            if (list1.isEmpty())
+            CustomURL parent = list1.get(0);
+
+            if (URLToRank != null)
             {
-               //  System.out.print("List1 is empty\n");
-                continue;
+                if (URLToRank.containsKey(parent.myURL.toString()))
+                    parent.setOldPageRank(URLToRank.get(parent.myURL.toString()));
             }
-            
-            this.add((V) list1.get(0));
-            
+
+            this.add((V) parent);
+
             for (int i=1; i<list1.size();i++)
             {
-                this.add((V)list1.get(0),(V)list1.get(i));
+                CustomURL child = list1.get(i);
+                
+                if (URLToRank != null)
+                {
+                    if (URLToRank.containsKey(child.myURL.toString()))
+                        child.setOldPageRank(URLToRank.get(child.myURL.toString()));
+                 }
+                this.add((V)parent,(V)child);
             }
         }
     }
+}
     
     
     protected Map<V,List<V>>  getNeighbors()
