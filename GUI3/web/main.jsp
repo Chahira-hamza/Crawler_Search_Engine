@@ -47,6 +47,20 @@
 
 <div id="main">
 
+    <table>
+        <c:forEach items="${contacts}" var="contact">
+            <tr>
+                <td>
+                    <h3 class="r">
+                    <a href="<%=pagelink%>"><%=pagetitle%></a>
+                    </h3> <br>
+                    <cite class="citeclass"><%=pagelink%></cite> <br>
+                    <span class="st"><%=pagetext%></span> <br>
+                </td>
+            </tr>
+        </c:forEach>
+    </table>
+
 </div>
 
 </body>

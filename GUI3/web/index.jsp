@@ -34,12 +34,12 @@
 
     <p id="SEname">Harry Potato</p>
 
-    <form method="GET" action="QueryX" name="Query" onsubmit="checkform(this)">
+    <form method="GET" action="QueryX" name="Query" onsubmit="checkform(this) ">
 
       <input type="text" name="SQuery" id="SQuery" size=100><br>
       <input type="submit" name="Lumos" id="Lumos" value="Lumos">
       <input type="submit" name="Felix Felicis" id="Felix Felicis" value="Felix Felicis">
-      <%-- //open any link from the search query results--%>
+      <%-- //open first link from the search query results--%>
 
     </form>
   </center>

@@ -1,4 +1,4 @@
-package QueryPackage;
+package com.QueryPackage;
 
 import java.io.IOException;
 import java.sql.ResultSet;
@@ -7,13 +7,15 @@ import javax.servlet.*;
 import javax.servlet.annotation.*;
 import javax.servlet.http.*;
 
-@WebServlet("QueryX")
+@WebServlet("/QueryX")
 public class QueryX extends HttpServlet {
 
     String queryInput;
     ResultSet results;
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        int page = 1;
+        int recordsPerPage = 10;
         queryInput = request.getParameter("SQuery");
 
         if (queryInput.isEmpty()){
@@ -26,13 +28,14 @@ public class QueryX extends HttpServlet {
                 return;
             }
         }
+        else {
+            try {
+                HPEngine engine = new HPEngine(queryInput);
+                results = engine.getresult();
 
-        try {
-            HPEngine engine = new HPEngine(queryInput);
-            results = engine.getresult();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 }

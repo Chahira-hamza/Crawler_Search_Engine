@@ -1,6 +1,5 @@
-package QueryPackage;
+package com.QueryPackage;
 
-import java.io.IOException;
 import java.sql.*;
 
 public class HPEngine {
@@ -19,17 +18,24 @@ public class HPEngine {
 
             if (queryInput.startsWith("\"") && queryInput.endsWith("\""))
             {
-                String searchQ = "SELECT " + queryInput + "FROM "; //Search query
+                String searchQ = "SELECT * FROM tablename WHERE columnname LIkE %" + queryInput + "%"; //Search query
                 query = connection.prepareStatement(searchQ); // actual select search statement needed
             }
             else {
                 String[] words=queryInput.split("\\s");
+                String tempstring = "";
 
                 for(String w:words) {
 
-                    String searchQ = "SELECT " + w + "FROM "; //Search query
-                    query = connection.prepareStatement(searchQ); // actual select search statement needed
+                    if (w.equals(queryInput.substring(queryInput.lastIndexOf(" ")+1))) {
+                        tempstring = tempstring + w;
+                    }
+                    else {
+                        tempstring = tempstring + w + " OR "; //stemming n3ml feiha eh?!
+                    }
                 }
+                String searchQ = "SELECT * FROM tablename WHERE columnname LIkE" + tempstring; //Search query
+                query = connection.prepareStatement(searchQ); // actual select search statement needed
             }
         }
         catch (SQLException e){

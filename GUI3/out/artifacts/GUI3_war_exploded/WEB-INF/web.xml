@@ -4,10 +4,13 @@
          xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
          version="4.0">
     <listener>
-        <listener-class>Query</listener-class>
+        <listener-class>com.QueryPackage.QueryX</listener-class>
     </listener>
     <servlet>
         <servlet-name>Query</servlet-name>
-        <servlet-class>Query</servlet-class>
+        <servlet-class>com.QueryPackage.QueryX</servlet-class>
     </servlet>
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
 </web-app>

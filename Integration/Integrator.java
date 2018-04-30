@@ -13,7 +13,7 @@ public class Integrator {
     
     private static final String DBCLASSNAME = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
     private static final String CONNECTION =
-			"jdbc:sqlserver://localhost:1433;databaseName=;user=;password=;";
+			"jdbc:sqlserver://localhost:1433;databaseName=SE;user=MOHAMED_MAHFOUZ;password=Well,fuckthis!1;";
     
     private static int threadNum;
     private static int depth;

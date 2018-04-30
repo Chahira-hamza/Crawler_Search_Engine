@@ -9,21 +9,8 @@ linkRank int,
 primary key(ID)
 );
 
-INSERT into Docs_URL (URL,Visited,linkRank)
-VALUES ('https://en.wikipedia.org/wiki/Main_Page',0,0);
-
 INSERT into Docs_URL (URL,Visited)
 VALUES ('https://www.theguardian.com',0);
-
-INSERT into Docs_URL (URL,Visited)
-VALUES ('https://www.reuters.com',0);
-
-INSERT into Docs_URL (URL,Visited)
-VALUES ('http://www.un.org/en/index.html',0);
-
-INSERT into Docs_URL (URL,Visited)
-VALUES ('http://www.nile.eg',0);
-
 
 CREATE TABLE Words
 (   Doc_ID int NOT NULL,
