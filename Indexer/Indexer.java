@@ -64,9 +64,9 @@ public class Indexer implements Runnable {
     String Insert_Words;
     String Insert_Postions;
     
-    boolean presentDoc = isDocIdPresentinWords(DocID);
+    int presentDoc = isDocIdPresentinWords(DocID);
     
-    if (! presentDoc)
+    if (presentDoc == 0)
     {
         Insert_Words = "INSERT INTO Words (Doc_ID,Word_ID,Stemmed_Word,Word,Rankw)  VALUES  (?,?,?,?,?)";
         Insert_Postions="INSERT INTO WordPostions (Doc_ID, Word_ID,Pos) VALUES (?,?,?)";
@@ -85,7 +85,7 @@ public class Indexer implements Runnable {
     WordStmt = con.prepareStatement(Insert_Words);
     PostionsStmt=con.prepareStatement(Insert_Postions);
     
-    if (presentDoc)
+    if (presentDoc != 0)
     {
         for (Map.Entry<String, Word> e : W.entrySet()) {
 
@@ -159,7 +159,7 @@ finally {
 }
 }
 
-public static boolean isDocIdPresentinWords(int docID)
+public static int isDocIdPresentinWords(int docID)
 {
     try{
         con.setAutoCommit(false);
@@ -168,17 +168,17 @@ public static boolean isDocIdPresentinWords(int docID)
         load_st.setInt(1, docID);
         ResultSet rt = load_st.executeQuery();
         con.commit();
-         
-        return (rt.next());
+         rt.next();
+        return (rt.getInt(1));
         
     }
     catch(SQLException sqle) {
-       return false;
+       return 0;
     }
     
 }
 
-public static boolean isDocIdPresentinText(int docID)
+public static int isDocIdPresentinText(int docID)
 {
     try{
         con.setAutoCommit(false);
@@ -187,12 +187,12 @@ public static boolean isDocIdPresentinText(int docID)
         load_st.setInt(1, docID);
         ResultSet rt = load_st.executeQuery();
         con.commit();
-         
-        return (rt.next());
+         rt.next();
+        return (rt.getInt(1));
         
     }
     catch(SQLException sqle) {
-       return false;
+       return 0;
     }
     
 }
@@ -202,9 +202,9 @@ public static boolean isDocIdPresentinText(int docID)
     
     String Insert_Text;
     
-    boolean present = isDocIdPresentinText(DocID);
+    int present = isDocIdPresentinText(DocID);
     
-    if (!present)
+    if (present == 0)
     {
         Insert_Text = "INSERT INTO DocText (Doc_ID,Dtext)  VALUES  (?,? )";
     }
@@ -218,7 +218,7 @@ public static boolean isDocIdPresentinText(int docID)
         con.setAutoCommit(false);
         TextStmt = con.prepareStatement(Insert_Text);
         
-        if (!present)
+        if (present == 0)
         {
             TextStmt.setLong(1, DocID);
             TextStmt.setString(2, text.toLowerCase());
