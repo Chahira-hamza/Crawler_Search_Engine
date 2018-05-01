@@ -4,11 +4,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -48,8 +51,11 @@ public class CrawlerManager implements Runnable {
         ExecutorService Executor =  Executors.newFixedThreadPool(threadNum);
         //int taskNum = myCrawlerResources.depth * threadNum;
         
+        Thread ranker;
        for (int i=0;i<myCrawlerResources.depth;i++)
        {
+            myCrawlerResources.setListToBeRanked();
+            
             for (int j=0; j<threadNum;j++)
                 resultWorkers[j] = Executor.submit(new Crawler(myCrawlerResources,con,lock));
             
@@ -69,12 +75,34 @@ public class CrawlerManager implements Runnable {
                 
             checkNeedRecrawl();
             
+            LinkedList<CustomURL> [] toBeRanked = myCrawlerResources.getListToBeRanked();
+            // send it to Ranker
+            
+            ranker = new Thread(new RankerManager(myCrawlerResources,con,toBeRanked));
+            ranker.start();
+            try {
+                ranker.join();
+            } catch (InterruptedException ex) {
+                Logger.getLogger(CrawlerManager.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
             myCrawlerResources.incrementIteration();
             System.out.println("Incremented Iteration = "+ myCrawlerResources.currentIteration);
 
             
         }
        
+        if (!myCrawlerResources.docsNotReached())
+        {
+            LinkedList<CustomURL> [] toBeRanked = myCrawlerResources.getListToBeRanked();
+            ranker = new Thread(new RankerManager(myCrawlerResources,con,toBeRanked));
+            ranker.start();
+            try {
+                ranker.join();
+            } catch (InterruptedException ex) {
+                Logger.getLogger(CrawlerManager.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
         Executor.shutdown();
 
         try{
@@ -85,9 +113,11 @@ public class CrawlerManager implements Runnable {
             System.out.println(e.getMessage());
         }
         
+        
         myCrawlerResources.printData();
         
-                // creating threads
+        
+            // creating threads
 //       while (myCrawlerResources.depthNotReached() && myCrawlerResources.docsNotReached())
 //       {
 //           for (int i=0; i<threadNum; i++)
@@ -105,16 +135,17 @@ public class CrawlerManager implements Runnable {
 //            catch(Exception e)
 //            {
 //                System.err.println(e.getMessage());
-//            }  
+//            }
 //           
 //            myCrawlerResources.currentIteration++;
 //       }
+     
        
       
         
     }
     
-    private void loadStatefromDB()
+private void loadStatefromDB()
 {
  
    try{
@@ -136,6 +167,7 @@ public class CrawlerManager implements Runnable {
                 myCrawlerResources.visited.add(url);
                 break;
             default:
+                url.setVisited(downloadflag);
                 myCrawlerResources.crawled.add(url);
                 break;
         }
@@ -165,6 +197,7 @@ private void checkNeedRecrawl()
                 CustomURL u = myCrawlerResources.removeAndGet(recrawlLinks.get(i));
                 u.setRecrawling(true);
                 u.setLinkRank(loadLinkRank(u));
+                u.setVisited(0);
                 myCrawlerResources.addasExtracted(u);
                 updateVisitedDB(u);
             }
@@ -223,7 +256,7 @@ private void updateVisitedDB(CustomURL url)
         query = "Update Docs_URL Set Visited = ?  Where URL = ?";
         stp =  con.prepareStatement(query);
         
-        stp.setInt(1, 1);
+        stp.setInt(1, 0);
         stp.setString(2, url.myURL.toString());
         stp.executeUpdate();
         con.commit();

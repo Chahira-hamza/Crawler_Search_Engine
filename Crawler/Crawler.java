@@ -1,4 +1,3 @@
-
 import java.sql.*;
 import java.net.*;
 import java.io.IOException;
@@ -123,7 +122,7 @@ public class Crawler implements Runnable {
                 if (isUrlValid(urlc)) {
                     if (getUrlId(urlc.myURL.toString()) != 0) // for debugging
                     {
-                        System.out.println("added already");
+                        //System.out.println("added already");
                         urlc.incrementLinkRank();
                         updateLinkRankDB(urlc);
                         continue;
@@ -242,9 +241,11 @@ public class Crawler implements Runnable {
              System.out.println(getUrlId(url));
             System.out.println("Sql Exception from insert Yes HERE :" + sqle.getMessage());
         }
-        }
+           
+        con.notify();
         
-        con.notifyAll();
+        }
+     
     }
 
     private void updateUrlinDB(String url, int downloadedflag, Document doc) throws Exception {
