@@ -22,14 +22,16 @@ import org.jsoup.select.Elements;
 public class Indexer implements Runnable {
 
 // Create a variable for the connection string.
-   private static String connectionUrl =
-    "jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=root;";
+//    private static String connectionUrl =
+//    "jdbc:sqlserver://localhost:1433;databaseName=search_engine;user=sa;password=gam3astuff*;";
 
     static Connection con = null;
+    //	    static Statement stmt = null;
+    //	    static ResultSet rs = null;
     static String Doc_Text;
     static int Doc_ID;
     static String Driver="com.microsoft.sqlserver.jdbc.SQLServerDriver";
-    static String Directory="E:\\Java\\Search_Engine\\Docs\\";
+    static String Directory="html_docs/";
     static Path folder = Paths.get(Directory);
     static String filename;
     static Document doc ;
@@ -59,20 +61,63 @@ public class Indexer implements Runnable {
     PreparedStatement WordStmt = null;
     PreparedStatement PostionsStmt=null;
 
-    String Insert_Words = "INSERT INTO Words (Doc_ID,Word_ID,Stemmed_Word,Word,Rankw)  VALUES  (?,?,?,?,?)";
-    String Insert_Postions="INSERT INTO WordPostions (Doc_ID, Word_ID,Pos) VALUES (?,?,?)";
+    String Insert_Words;
+    String Insert_Postions;
+    
+    boolean presentDoc = isDocIdPresentinWords(DocID);
+    
+    if (! presentDoc)
+    {
+        Insert_Words = "INSERT INTO Words (Doc_ID,Word_ID,Stemmed_Word,Word,Rankw)  VALUES  (?,?,?,?,?)";
+        Insert_Postions="INSERT INTO WordPostions (Doc_ID, Word_ID,Pos) VALUES (?,?,?)";
+    }
+    else
+    {
+        Insert_Words    = "Update Words set Word_ID = ?,Stemmed_Word = ?,Word = ?,Rankw = ? where Doc_ID = ?;";
+        Insert_Postions = "Update WordPostions set Word_ID = ?,Pos = ? where Doc_ID = ?";
+    }
+    
     int i=1;
+    
     try {
     con.setAutoCommit(false);
 
     WordStmt = con.prepareStatement(Insert_Words);
     PostionsStmt=con.prepareStatement(Insert_Postions);
-    for (Map.Entry<String, Word> e : W.entrySet()) {
+    
+    if (presentDoc)
+    {
+        for (Map.Entry<String, Word> e : W.entrySet()) {
+
+        WordStmt.setLong(1, i);
+        WordStmt.setString(2, e.getKey());
+        WordStmt.setString(3, e.getValue().Word);
+        WordStmt.setLong(4, e.getValue().Rank.longValue());
+        WordStmt.setLong(5, DocID);
+        WordStmt.executeUpdate();
+
+        PostionsStmt.setLong(1, i);
+        PostionsStmt.setLong(3, Doc_ID);
+        
+        for(int in=0; in< e.getValue().Postions_list.size();in++)
+        {
+            PostionsStmt.setLong(2,(long) e.getValue().Postions_list.get(in) );
+            PostionsStmt.executeUpdate();
+        }
+        i++;
+        con.commit();
+        
+        
+        }
+    }
+    else
+    {
+        for (Map.Entry<String, Word> e : W.entrySet()) {
         WordStmt.setLong(1, DocID);
         WordStmt.setLong(2, i);
         WordStmt.setString(3, e.getKey());
         WordStmt.setString(4, e.getValue().Word);
-		WordStmt.setLong(5, e.getValue().Rank.longValue());
+        WordStmt.setLong(5, e.getValue().Rank.longValue());
         WordStmt.executeUpdate();
 
         PostionsStmt.setLong(1, Doc_ID);
@@ -83,16 +128,20 @@ public class Indexer implements Runnable {
             PostionsStmt.setLong(3,(long) e.getValue().Postions_list.get(in) );
             PostionsStmt.executeUpdate();
         }
-
-        con.commit();
+        
         i++;
+        con.commit();
+        }
+        
+       
     }
-} catch (SQLException e) {
+    }
+    catch (SQLException e) {
 
-    System.out.println("Sql Exception :" + e.getMessage());
+    System.out.println("Sql Exception  from insert words:" + e.getMessage());
     if (con != null) {
         try {
-            System.err.print("Transaction is being rolled back");
+            System.err.print("Transaction is being rolled back\n");
             con.rollback();
         } catch (SQLException excep) {
 
@@ -110,15 +159,76 @@ finally {
 }
 }
 
+public static boolean isDocIdPresentinWords(int docID)
+{
+    try{
+        con.setAutoCommit(false);
+        String query = "Select Doc_ID from Words Where Doc_ID = ?';";
+        PreparedStatement load_st =  con.prepareStatement(query);
+        load_st.setInt(1, docID);
+        ResultSet rt = load_st.executeQuery();
+        con.commit();
+         
+        return (rt.next());
+        
+    }
+    catch(SQLException sqle) {
+       return false;
+    }
+    
+}
+
+public static boolean isDocIdPresentinText(int docID)
+{
+    try{
+        con.setAutoCommit(false);
+        String query = "Select Doc_ID from DocText Where Doc_ID = ?';";
+        PreparedStatement load_st =  con.prepareStatement(query);
+        load_st.setInt(1, docID);
+        ResultSet rt = load_st.executeQuery();
+        con.commit();
+         
+        return (rt.next());
+        
+    }
+    catch(SQLException sqle) {
+       return false;
+    }
+    
+}
+    
     public static void InsertText(String text, int DocID) throws SQLException {
     PreparedStatement TextStmt = null;
-    String Insert_Text = "INSERT INTO DocText (Doc_ID,Dtext)  VALUES  (?,? )";
-
+    
+    String Insert_Text;
+    
+    boolean present = isDocIdPresentinText(DocID);
+    
+    if (!present)
+    {
+        Insert_Text = "INSERT INTO DocText (Doc_ID,Dtext)  VALUES  (?,? )";
+    }
+    else
+    {
+        Insert_Text = "Update DocText set Dtext = ?  where Doc_Id = ?";
+    }
+    
+   
     try {
         con.setAutoCommit(false);
         TextStmt = con.prepareStatement(Insert_Text);
-        TextStmt.setLong(1, DocID);
-        TextStmt.setString(2, text.toLowerCase());
+        
+        if (!present)
+        {
+            TextStmt.setLong(1, DocID);
+            TextStmt.setString(2, text.toLowerCase());
+        }
+        else
+        {
+           
+            TextStmt.setLong(2, DocID);
+            TextStmt.setString(1, text.toLowerCase());
+        }
         TextStmt.executeUpdate();
         con.commit();
 
@@ -126,7 +236,7 @@ finally {
 
     catch (SQLException e) {
 
-        System.out.println("Sql Exception :" + e.getMessage());
+        System.out.println("Sql Exception from insert text:" + e.getMessage());
         if (con != null) {
             try {
                 System.err.print("Transaction is being rolled back");
@@ -168,7 +278,7 @@ finally {
         System.out.println("Sql Exception :" + e.getMessage());
         if (con != null) {
             try {
-                System.err.print("Transaction is being rolled back");
+                System.err.print("Transaction is being rolled back from Update Words");
                 con.rollback();
             } catch (SQLException excep) {
 
@@ -512,4 +622,6 @@ finally {
 
 }
 
+
+    
 }
