@@ -1,9 +1,11 @@
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Scanner;
 import java.sql.*;
 import java.io.File;
@@ -30,6 +32,7 @@ public class QueryProcessor {
 	static StopWords stopwords = null;
 	static ArrayList<String> SrchStmt = new ArrayList<String>();
 	static HashMap<String, SrchWord> WordList = new HashMap<String, SrchWord>();
+	static String Tokens[];
 
 	public static void ConnectToDB() {
 		try {
@@ -51,43 +54,75 @@ public class QueryProcessor {
 
 		SrchStmt = new ArrayList<String>(Arrays.asList(words));
 		Iterator<String> it = SrchStmt.iterator();
+		int i = 0;
 		while (it.hasNext()) {
 			String st = it.next();
 			if (stopwords.h.contains(st)) {
 				it.remove();
+
 			}
+
 		}
-		/*
-		 * for (String element : SrchStmt) {
-		 * 
-		 * System.out.print(element+"-");
-		 * 
-		 * }
-		 */
+
+		int n = SrchStmt.size();
+		Tokens = new String[n];
+		for (String element : SrchStmt) {
+
+			// System.out.print(element+"-");
+			Tokens[i] = element;
+			i++;
+		}
+
+		// for(int j=0; j< Tokens.length ;j++)
+		// {
+		// System.out.print(Tokens[j]+"-");
+		// }
 	}
-    
-	public static int GetLengthDoc( int DID) throws SQLException
-	{
+
+	public static int GetLengthDoc(int DID) throws SQLException {
 		int len;
 		PreparedStatement GetLenStmt = null;
 		String SelectLen = " select Count(Pos)from WordPostions where Doc_ID = ?";
 		con.setAutoCommit(false);
-		GetLenStmt= con.prepareStatement(SelectLen);
+		GetLenStmt = con.prepareStatement(SelectLen);
 		GetLenStmt.setInt(1, DID);
 		ResultSet rs;
 		rs = GetLenStmt.executeQuery();
 		con.commit();
-		if(rs.next())
-		{
-			
-			len=rs.getInt(1);
+		if (rs.next()) {
+
+			len = rs.getInt(1);
 			con.setAutoCommit(true);
-		}
-		else
-			len=-1;
+		} else
+			len = -1;
 		return len;
-		
+
 	}
+
+	public static int GetNumDocs() throws SQLException {
+
+		int NumDocs;
+		PreparedStatement GetNumStmt = null;
+		String CountDocs = "select count(*) from DocText";
+		con.setAutoCommit(false);
+		GetNumStmt = con.prepareStatement(CountDocs);
+
+		ResultSet rs;
+		rs = GetNumStmt.executeQuery();
+		con.commit();
+		if (rs.next()) {
+
+			NumDocs = rs.getInt(1);
+			con.setAutoCommit(true);
+		} else {
+			NumDocs = -1;
+
+		}
+
+		return NumDocs;
+
+	}
+
 	public static ArrayList<Integer> GetPos(int WID, int DocId) throws SQLException {
 		PreparedStatement GetPosStmt = null;
 		String SelectPos = " Select Pos from WordPostions WHERE Word_ID=? and Doc_ID= ?";
@@ -107,13 +142,16 @@ public class QueryProcessor {
 			}
 
 		}
+
+		Collections.sort(posList);
 		return posList;
 
 	}
 
-	public static void GetDoc_StemWord(String IN) throws SQLException {
+	public static void GetDoc_StemWord(String IN, int numDocs) throws SQLException {
 		PreparedStatement SelectWordStmt = null;
-       int lenDoc;
+		int lenDoc;
+		int DocD;
 		String Select_Docs = "SELECT   Word, Word_ID ,Rankw,Doc_ID   FROM Words where Stemmed_Word= ?";
 
 		FilterStmt(IN);
@@ -130,31 +168,36 @@ public class QueryProcessor {
 				rs = SelectWordStmt.executeQuery();
 				con.commit();
 				int i = 0;
+
 				if (!WordList.containsKey(root)) {
 					boolean f = rs.next();
 					if (f) {
-						WordList.put(element,
-								new SrchWord(element, new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2))));
-					  //System.out.println("length of doc id: "+rs.getInt(4)+"->"+ GetLengthDoc(rs.getInt(4)));
-						lenDoc=GetLengthDoc(rs.getInt(4));
-						ArrayList<Integer> pp = GetPos(rs.getInt(2), rs.getInt(4));
-						WordList.get(element).DocsID.get(i).set_tf(lenDoc);
+						WordList.put(element, new SrchWord(rs.getString(1), rs.getInt(4),
+								new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2))));
+
+						DocD = rs.getInt(4);
+						lenDoc = GetLengthDoc(DocD);
+						WordList.get(element).set_IDF(numDocs);
+						ArrayList<Integer> pp = GetPos(rs.getInt(2), DocD);
+						WordList.get(element).DocsID.get(rs.getInt(4)).set_tf(lenDoc);
 						for (int e : pp) {
-							WordList.get(element).DocsID.get(i).AddPos(e);
+							WordList.get(element).DocsID.get(DocD).AddPos(e);
 						}
 						while (rs.next()) {
 
 							i++;
-							WordList.get(element).AddDocsID(new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2)));
-							lenDoc=GetLengthDoc(rs.getInt(4));
-							WordList.get(element).DocsID.get(i).set_tf(lenDoc);
-							pp = GetPos(rs.getInt(2), rs.getInt(4));
+							DocD = rs.getInt(4);
+							WordList.get(element).AddDocsID(new DocID(DocD, rs.getInt(3), rs.getInt(2)), DocD);
+							lenDoc = GetLengthDoc(DocD);
+							WordList.get(element).DocsID.get(DocD).set_tf(lenDoc);
+							pp = GetPos(rs.getInt(2), DocD);
 
 							for (int e : pp) {
-								WordList.get(element).DocsID.get(i).AddPos(e);
+								WordList.get(element).DocsID.get(DocD).AddPos(e);
 							}
 
 						}
+						WordList.get(element).set_IDF(numDocs);
 					}
 				} else {
 
@@ -187,11 +230,12 @@ public class QueryProcessor {
 		}
 	}
 
-	public static void GetDoc_Word(String IN) throws SQLException {
+	public static void GetDoc_Word(String IN, int numDocs) throws SQLException {
 		PreparedStatement SelectWordStmt = null;
 
 		String Select_Docs = " SELECT   Word, Word_ID ,Rankw,Doc_ID   FROM Words where Word= ?";
 		int lenDoc;
+		int DocD;
 		FilterStmt(IN);
 		try {
 			for (String element : SrchStmt) {
@@ -209,29 +253,32 @@ public class QueryProcessor {
 					boolean f = rs.next();
 					if (f) {
 
-						WordList.put(element,
-								new SrchWord(element, new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2))));
+						WordList.put(element, new SrchWord(rs.getString(1), rs.getInt(4),
+								new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2))));
 
-						ArrayList<Integer> pp = GetPos(rs.getInt(2), rs.getInt(4));
-						lenDoc=GetLengthDoc(rs.getInt(4));
-						WordList.get(element).DocsID.get(i).set_tf(lenDoc);
-						
+						DocD = rs.getInt(4);
+						lenDoc = GetLengthDoc(DocD);
+
+						ArrayList<Integer> pp = GetPos(rs.getInt(2), DocD);
+						WordList.get(element).DocsID.get(rs.getInt(4)).set_tf(lenDoc);
 						for (int e : pp) {
-							WordList.get(element).DocsID.get(i).AddPos(e);
+							WordList.get(element).DocsID.get(DocD).AddPos(e);
 						}
 						while (rs.next()) {
 
 							i++;
-							WordList.get(element).AddDocsID(new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2)));
-							lenDoc=GetLengthDoc(rs.getInt(4));
-							WordList.get(element).DocsID.get(i).set_tf(lenDoc);
-							pp = GetPos(rs.getInt(2), rs.getInt(4));
+							DocD = rs.getInt(4);
+							WordList.get(element).AddDocsID(new DocID(DocD, rs.getInt(3), rs.getInt(2)), DocD);
+							lenDoc = GetLengthDoc(DocD);
+							WordList.get(element).DocsID.get(DocD).set_tf(lenDoc);
+							pp = GetPos(rs.getInt(2), DocD);
 
 							for (int e : pp) {
-								WordList.get(element).DocsID.get(i).AddPos(e);
+								WordList.get(element).DocsID.get(DocD).AddPos(e);
 							}
 
 						}
+						WordList.get(element).set_IDF(numDocs);
 					}
 
 					else {
@@ -268,17 +315,62 @@ public class QueryProcessor {
 
 	}
 
-	public static void TF_IDF() {
-		
-		for (Map.Entry<String, SrchWord> entry1 : WordList.entrySet()) 
-			
+	public static void Postions() {
+
+		int mypos;
+		int doc_ID;
+
+		// loop for valid doc
+
+		HashMap<Integer, DocID> dd = WordList.get(Tokens[0]).DocsID;
+
+		for (Entry<Integer, DocID> entry12 : dd.entrySet())
+
 		{
-			//System.out.println(entry1.getKey());
-			SrchWord w1 = entry1.getValue();
-			w1.PrintSrchWord();
+			DocID d11 = entry12.getValue();
+			int doc_ID11 = entry12.getKey();
+
+			for (int j = 1; j < Tokens.length; j++) {
+				if ((WordList.get(Tokens[j]).DocsID.get(doc_ID11) == null)) {
+					WordList.get(Tokens[0]).DocsID.get(doc_ID11).valid = false;
+				}
+			}
+		}
+		////////////////////////////////////////////////
+		int f = 1;
+		int x = 0;
+		for (Entry<Integer, DocID> entry1 : dd.entrySet())
+
+		{
+			DocID d = entry1.getValue();
+			doc_ID = entry1.getKey();
+			if (WordList.get(Tokens[0]).DocsID.get(doc_ID).valid == true) {
+				for (int i = 0; i < d.WordPos.size(); i++) {
+					mypos = d.WordPos.get(i);
+					f = 1;
+					for (int j = 1; j < Tokens.length; j++) {
+
+						if (!(WordList.get(Tokens[j]).DocsID.get(doc_ID).WordPos.contains(mypos + j)))
+
+						{
+							f = 0;
+							break;
+
+						}
+						x = j;
+					}
+
+					if (f == 1 && x == Tokens.length - 1) {
+						WordList.get(Tokens[0]).DocsID.get(doc_ID).valid = true;
+						break;
+
+					}
+
+				}
+
+			}
 
 		}
-
 	}
 
 	public static void main(String[] args) throws SQLException {
@@ -289,24 +381,33 @@ public class QueryProcessor {
 		try {
 
 			ConnectToDB();
+			int TotalnumDoc = GetNumDocs();
 			if (InputStr.startsWith("\"") && InputStr.endsWith("\"")) {
 				System.out.println("quotation");
-				GetDoc_Word(InputStr);
+
+				GetDoc_Word(InputStr, TotalnumDoc);
+
+				System.out.println("total number of doc =" + TotalnumDoc);
 
 			}
 
 			else {
-				GetDoc_StemWord(InputStr);
+				GetDoc_StemWord(InputStr, TotalnumDoc);
 			}
+
+			Postions();
 
 			for (Map.Entry<String, SrchWord> entry1 : WordList.entrySet()) /// for
-				/// printing
+			/// printing
 			{
-				System.out.println(entry1.getKey());
+				System.out.println(entry1.getKey() + "	IDF: " + entry1.getValue().IDf);
+
 				SrchWord w1 = entry1.getValue();
 				w1.PrintSrchWord();
+				System.out.println("___________________________");
 
 			}
+
 		}
 
 		catch (Exception e) {

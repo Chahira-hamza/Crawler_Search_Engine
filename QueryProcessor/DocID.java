@@ -1,18 +1,21 @@
 
 import java.util.ArrayList;
+import java.util.Collections;
 public class DocID {
 
-	public  ArrayList<Integer> WordPos;
+	 public  ArrayList<Integer> WordPos;
 	 public int ID;
 	 public double tf;
 	 public double wrank;
 	 public int WordID; 
+	 public boolean valid;
 	public DocID(int i ,double t, int Wid )
 	{
 		this.ID=i;
 		this.wrank=t;
 		WordID=Wid;
 		WordPos=new ArrayList<Integer>();
+		valid=true;
 		
 	}
 	
@@ -32,7 +35,13 @@ public class DocID {
 		this.tf=this.wrank/l;
 		
 	}
-	
+//	
+//	void SortPosList()
+//	{
+//		Collections.sort(WordPos); 
+//
+//		
+//	}
 	void Printpos()
 	{
 		

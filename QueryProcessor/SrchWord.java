@@ -1,29 +1,39 @@
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 public class SrchWord {
 	
 	public  String Word;
 	
-	public  ArrayList< DocID> DocsID;
-	public int IDf;
+	//public  ArrayList< DocID> DocsID;
+	 public HashMap<Integer, DocID> DocsID = new HashMap<Integer, DocID>();
+	public double IDf;
 	
 	
 	
-	public SrchWord(String w,DocID d)
+	public SrchWord(String w, int DID,DocID d)
 	{
 		
 		Word=w;
 		
-		
-		 DocsID=new ArrayList< DocID>();
-		DocsID.add(d);
+		DocsID.put(DID, d);
+		// DocsID=new ArrayList< DocID>();
+		//DocsID.add(d);
 	}
 	
 	
 	
 
-	void AddDocsID(DocID p)
+void set_IDF(double n)
+{
+	double m=this.DocsID.size();
+ this.IDf=Math.log10(n/m);
+}
+
+
+	void AddDocsID(DocID p, int D)
 	{
-		DocsID.add(p);
+		DocsID.put(D, p);
 		
 	}
 	
@@ -31,17 +41,20 @@ public class SrchWord {
 	void PrintSrchWord()
 	{
 		System.out.println("word : "+Word );
-		
-		for( DocID d : DocsID)
-		{
-			System.out.println(" Positions  in DocId: "+d.ID);
-			System.out.println("WordID: "+d.WordID+"  WRank : "+d.wrank+"  tf: "+d.tf);
+		DocID E;
+		for (Map.Entry<Integer, DocID> entry1 : DocsID.entrySet())
+{
+			E=entry1.getValue();
 			
-			d.Printpos();
 			
-		}
+			System.out.println("  DocId: "+entry1.getKey()+"  valid: "+E.valid);
+			System.out.println("WordID: "+E.WordID+"  WRank : "+E.wrank+"  tf: "+E.tf);
+			System.out.print("positions : " );
+			E.Printpos();
+			
+
 		
-		
+}
 	}
 	
 }
