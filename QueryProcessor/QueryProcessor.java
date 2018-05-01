@@ -31,7 +31,7 @@ public class QueryProcessor {
 	static Stemmer stemmer = new Stemmer();
 	static StopWords stopwords = null;
 	static ArrayList<String> SrchStmt = new ArrayList<String>();
-	static HashMap <Integer, DocRank> pages=new HashMap<Integer,DocRank>();
+	static HashMap<Integer, DocRank> pages = new HashMap<Integer, DocRank>();    // sort it 
 	static HashMap<String, SrchWord> WordList = new HashMap<String, SrchWord>();
 	static String Tokens[];
 
@@ -74,10 +74,6 @@ public class QueryProcessor {
 			i++;
 		}
 
-		// for(int j=0; j< Tokens.length ;j++)
-		// {
-		// System.out.print(Tokens[j]+"-");
-		// }
 	}
 
 	public static int GetLengthDoc(int DID) throws SQLException {
@@ -149,10 +145,33 @@ public class QueryProcessor {
 
 	}
 
+	public static double GetPageRank_DB(int DID) throws SQLException {
+		double rank;
+
+		PreparedStatement GetPageRStmt = null;
+		String PageR = " Select linkRank *pageRank from Docs_URL where ID= ?";
+		con.setAutoCommit(false);
+		GetPageRStmt = con.prepareStatement(PageR);
+		GetPageRStmt.setInt(1, DID);
+		ResultSet rs;
+		rs = GetPageRStmt.executeQuery();
+		con.commit();
+		if (rs.next()) {
+
+			rank = rs.getDouble(1);
+			con.setAutoCommit(true);
+		} else
+			rank = 1;
+
+		return rank;
+	}
+
 	public static void GetDoc_StemWord(String IN, int numDocs) throws SQLException {
 		PreparedStatement SelectWordStmt = null;
 		int lenDoc;
 		int DocD;
+		double rank;
+
 		String Select_Docs = "SELECT   Word, Word_ID ,Rankw,Doc_ID   FROM Words where Stemmed_Word= ?";
 
 		FilterStmt(IN);
@@ -177,10 +196,14 @@ public class QueryProcessor {
 								new DocID(rs.getInt(4), rs.getInt(3), rs.getInt(2))));
 
 						DocD = rs.getInt(4);
+						rank = GetPageRank_DB(DocD); /// to get page rank from
+														/// DB
 						lenDoc = GetLengthDoc(DocD);
 						WordList.get(element).set_IDF(numDocs);
 						ArrayList<Integer> pp = GetPos(rs.getInt(2), DocD);
 						WordList.get(element).DocsID.get(rs.getInt(4)).set_tf(lenDoc);
+
+						WordList.get(element).DocsID.get(DocD).SetRank(rank);
 						for (int e : pp) {
 							WordList.get(element).DocsID.get(DocD).AddPos(e);
 						}
@@ -188,9 +211,12 @@ public class QueryProcessor {
 
 							i++;
 							DocD = rs.getInt(4);
+							rank = GetPageRank_DB(DocD);
 							WordList.get(element).AddDocsID(new DocID(DocD, rs.getInt(3), rs.getInt(2)), DocD);
 							lenDoc = GetLengthDoc(DocD);
 							WordList.get(element).DocsID.get(DocD).set_tf(lenDoc);
+							rank = GetPageRank_DB(DocD);
+							WordList.get(element).DocsID.get(DocD).SetRank(rank);
 							pp = GetPos(rs.getInt(2), DocD);
 
 							for (int e : pp) {
@@ -237,6 +263,7 @@ public class QueryProcessor {
 		String Select_Docs = " SELECT   Word, Word_ID ,Rankw,Doc_ID   FROM Words where Word= ?";
 		int lenDoc;
 		int DocD;
+		double rank;
 		FilterStmt(IN);
 		try {
 			for (String element : SrchStmt) {
@@ -260,6 +287,9 @@ public class QueryProcessor {
 						DocD = rs.getInt(4);
 						lenDoc = GetLengthDoc(DocD);
 
+						rank = GetPageRank_DB(DocD);
+						WordList.get(element).DocsID.get(DocD).SetRank(rank);
+
 						ArrayList<Integer> pp = GetPos(rs.getInt(2), DocD);
 						WordList.get(element).DocsID.get(rs.getInt(4)).set_tf(lenDoc);
 						for (int e : pp) {
@@ -271,6 +301,10 @@ public class QueryProcessor {
 							DocD = rs.getInt(4);
 							WordList.get(element).AddDocsID(new DocID(DocD, rs.getInt(3), rs.getInt(2)), DocD);
 							lenDoc = GetLengthDoc(DocD);
+
+							rank = GetPageRank_DB(DocD);
+							WordList.get(element).DocsID.get(DocD).SetRank(rank);
+
 							WordList.get(element).DocsID.get(DocD).set_tf(lenDoc);
 							pp = GetPos(rs.getInt(2), DocD);
 
@@ -373,60 +407,61 @@ public class QueryProcessor {
 
 		}
 	}
-    
+
 	public static void Ranker() {
 
 		HashMap<Integer, DocID> documents;
-		double rr=20.0;
+		double rr = 20.0;
 		double rank;
 		for (int i = 0; i < Tokens.length; i++) {
 			documents = WordList.get(Tokens[i]).DocsID;
-			
+
 			for (Entry<Integer, DocID> entry1 : documents.entrySet()) {
 				DocID page = entry1.getValue();
-				 if (!pages.containsKey(page.ID))
-				 {
-					 page.PageRank += WordList.get(Tokens[i]).IDf * page.tf * page.wrank;
-				
-				 	   pages.put(page.ID, new DocRank(page.PageRank,page.valid));
-				 }
-				 
-				 else 
-				 { 
-					 page.PageRank += WordList.get(Tokens[i]).IDf * page.tf * page.wrank;
-					 pages.get(page.ID).AddRank( page.PageRank);
-				 
-				 }
+				if (!pages.containsKey(page.ID)) {
+					page.PageRank += WordList.get(Tokens[i]).IDf * page.tf * page.wrank;
+
+					pages.put(page.ID, new DocRank(page.PageRank, page.valid));
+				}
+
+				else {
+					page.PageRank += WordList.get(Tokens[i]).IDf * page.tf * page.wrank;
+					pages.get(page.ID).AddRank(page.PageRank);
+
+				}
 			}
 
 		}
 
 	}
-	
+
 	public static void main(String[] args) throws SQLException {
 
 		Scanner in = new Scanner(System.in);
-		String InputStr = in.nextLine();
+		String InputStr = in.nextLine(); // to read user input;
 
+		boolean quotated = false; // to know input with quotation or not;
 		try {
 
 			ConnectToDB();
-			int TotalnumDoc = GetNumDocs();
+			int TotalnumDoc = GetNumDocs();    
 			if (InputStr.startsWith("\"") && InputStr.endsWith("\"")) {
 				System.out.println("quotation");
-
+				
+				quotated = true;
+				
 				GetDoc_Word(InputStr, TotalnumDoc);
 
 				System.out.println("total number of doc =" + TotalnumDoc);
 				Postions();
+				
 
 			}
 
 			else {
 				GetDoc_StemWord(InputStr, TotalnumDoc);
+				quotated = false;
 			}
-
-		
 
 			for (Map.Entry<String, SrchWord> entry1 : WordList.entrySet()) /// for
 			/// printing
@@ -440,10 +475,14 @@ public class QueryProcessor {
 			}
 			System.out.println("================================================================");
 			Ranker();
-			for(Map.Entry<Integer, DocRank> entry1 : pages.entrySet())
+			for (Map.Entry<Integer, DocRank> entry1 : pages.entrySet()) // for
+																		// printing
+																		// pages
+																		// with
+																		// rank
 			{
-				System.out.println( "DocID : "+entry1.getKey());
-				System.out.println("pageRank: "+entry1.getValue().rank);
+				System.out.println("DocID : " + entry1.getKey());
+				System.out.println("pageRank: " + entry1.getValue().rank);
 			}
 
 		}

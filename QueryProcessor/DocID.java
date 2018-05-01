@@ -10,7 +10,7 @@ public class DocID {
 	 public int WordID; 
 	 public boolean valid;
 
-	public double PageRank=0;
+	public double PageRank=1;
 	public DocID(int i ,double t, int Wid )
 	{
 		this.ID=i;
@@ -18,6 +18,7 @@ public class DocID {
 		WordID=Wid;
 		WordPos=new ArrayList<Integer>();
 		valid=true;
+		
 		
 	}
 	
@@ -37,13 +38,18 @@ public class DocID {
 		this.tf=this.wrank/l;
 		
 	}
-//	
+	
 //	void SortPosList()
 //	{
 //		Collections.sort(WordPos); 
 //
 //		
 //	}
+	void SetRank(double r )
+	{
+		this.PageRank=r;
+		
+	}
 	void Printpos()
 	{
 		
