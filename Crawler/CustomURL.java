@@ -19,14 +19,26 @@ public class CustomURL {
     boolean recrawling;
     float pageRank;
     float oldPageRank;
+    int Visited;
+    int outGoingLinks;
     
     public CustomURL(String url) throws MalformedURLException, URISyntaxException 
     {
+        
+        Pattern patt = Pattern.compile("(^.*)?\\?");
+        Matcher match = patt.matcher(url);
+        if (match.find())
+        {
+            url = match.group(0).replaceFirst(".$", "");
+        }
+        
         myURL = new URI(url).normalize().toURL();
         linkRank = 0;
         pageRank = 1;
         oldPageRank = 1;
         recrawling = false;
+        Visited = 0;        // 0 : not downloaded       // 1: downloaded but still not parent       // 2: downloaded and parent
+        outGoingLinks = 0;
     }
     
     public CustomURL() 
@@ -34,10 +46,44 @@ public class CustomURL {
        linkRank = 0;
     }
     
+    protected void setOutGoingLinks(int out)
+    {
+        outGoingLinks = out;
+    }
+    
+    protected int getOutGoingLinks()
+    {
+        return outGoingLinks;
+    }
+    
+    protected void setVisited(int v)
+    {
+        Visited = v;
+    }
+    
+    protected int getVisited()
+    {
+        return Visited;   
+    }
+    
+    //*******************************************
+    
     public void incrementLinkRank()
     {
         linkRank ++;
     }
+    
+      public int getLinkRank()
+    {
+        return linkRank;
+    }
+    
+    public void setLinkRank(int rank)
+    {
+        linkRank = rank;
+    }
+    
+    //*******************************************
     
     public float getOldPageRank()
     {
@@ -49,15 +95,12 @@ public class CustomURL {
         this.oldPageRank = this.pageRank;
     }
     
-    public int getLinkRank()
+  
+    public void setOldPageRank(float rank)
     {
-        return linkRank;
+        oldPageRank = rank;   
     }
     
-    public void setLinkRank(int rank)
-    {
-        linkRank = rank;
-    }
     
     public void updatepageRank(float rank)
     {
@@ -74,6 +117,7 @@ public class CustomURL {
         pageRank = rank;
     }
     
+    //*********************************************
     public boolean getRecrawling()
     {
         return recrawling;
@@ -83,6 +127,9 @@ public class CustomURL {
     {
         recrawling = b;
     }
+    
+    
+    //*********************************************
     
     @Override
     public boolean equals(Object o) {
@@ -112,11 +159,7 @@ public class CustomURL {
         
         return string1.equals(string2);
     }
-
-
-
-    
-        
+ 
     
 //    private static void splitUrlfromProtocol(String[] url)
 //{
