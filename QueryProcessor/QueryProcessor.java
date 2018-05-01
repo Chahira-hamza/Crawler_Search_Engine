@@ -31,6 +31,7 @@ public class QueryProcessor {
 	static Stemmer stemmer = new Stemmer();
 	static StopWords stopwords = null;
 	static ArrayList<String> SrchStmt = new ArrayList<String>();
+	static HashMap <Integer, DocRank> pages=new HashMap<Integer,DocRank>();
 	static HashMap<String, SrchWord> WordList = new HashMap<String, SrchWord>();
 	static String Tokens[];
 
@@ -372,7 +373,36 @@ public class QueryProcessor {
 
 		}
 	}
+    
+	public static void Ranker() {
 
+		HashMap<Integer, DocID> documents;
+		double rr=20.0;
+		double rank;
+		for (int i = 0; i < Tokens.length; i++) {
+			documents = WordList.get(Tokens[i]).DocsID;
+			
+			for (Entry<Integer, DocID> entry1 : documents.entrySet()) {
+				DocID page = entry1.getValue();
+				 if (!pages.containsKey(page.ID))
+				 {
+					 page.PageRank += WordList.get(Tokens[i]).IDf * page.tf * page.wrank;
+				
+				 	   pages.put(page.ID, new DocRank(page.PageRank,page.valid));
+				 }
+				 
+				 else 
+				 { 
+					 page.PageRank += WordList.get(Tokens[i]).IDf * page.tf * page.wrank;
+					 pages.get(page.ID).AddRank( page.PageRank);
+				 
+				 }
+			}
+
+		}
+
+	}
+	
 	public static void main(String[] args) throws SQLException {
 
 		Scanner in = new Scanner(System.in);
@@ -388,6 +418,7 @@ public class QueryProcessor {
 				GetDoc_Word(InputStr, TotalnumDoc);
 
 				System.out.println("total number of doc =" + TotalnumDoc);
+				Postions();
 
 			}
 
@@ -395,7 +426,7 @@ public class QueryProcessor {
 				GetDoc_StemWord(InputStr, TotalnumDoc);
 			}
 
-			Postions();
+		
 
 			for (Map.Entry<String, SrchWord> entry1 : WordList.entrySet()) /// for
 			/// printing
@@ -406,6 +437,13 @@ public class QueryProcessor {
 				w1.PrintSrchWord();
 				System.out.println("___________________________");
 
+			}
+			System.out.println("================================================================");
+			Ranker();
+			for(Map.Entry<Integer, DocRank> entry1 : pages.entrySet())
+			{
+				System.out.println( "DocID : "+entry1.getKey());
+				System.out.println("pageRank: "+entry1.getValue().rank);
 			}
 
 		}

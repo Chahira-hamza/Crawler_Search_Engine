@@ -9,6 +9,8 @@ public class DocID {
 	 public double wrank;
 	 public int WordID; 
 	 public boolean valid;
+
+	public double PageRank=0;
 	public DocID(int i ,double t, int Wid )
 	{
 		this.ID=i;
