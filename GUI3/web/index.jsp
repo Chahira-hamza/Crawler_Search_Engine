@@ -36,9 +36,11 @@
 
     <form method="GET" action="QueryX" name="Query" onsubmit="checkform(this) ">
 
-      <input type="text" name="SQuery" id="SQuery" size=100><br>
-      <input type="submit" name="Lumos" id="Lumos" value="Lumos">
-      <input type="submit" name="Felix Felicis" id="Felix Felicis" value="Felix Felicis">
+        <input type="hidden" name="formx" value="form1">
+        <input type = "hidden" name = "page" value = "1" />
+        <input type="text" name="SQuery" id="SQuery" size=100><br>
+        <input type="submit" name="Lumos" id="Lumos" value="Lumos">
+        <input type="submit" name="Felix Felicis" id="Felix Felicis" value="Felix Felicis">
       <%-- //open first link from the search query results--%>
 
     </form>

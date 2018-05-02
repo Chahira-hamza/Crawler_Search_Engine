@@ -3,6 +3,7 @@
     <CLASSES>
       <root url="file://D:/Apps/APT/apache-tomcat-9.0.7/bin" />
       <root url="file://D:/Apps/APT/apache-tomcat-9.0.7/lib" />
+      <root url="jar://D:/Apps/APT/jsoup-1.11.2.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

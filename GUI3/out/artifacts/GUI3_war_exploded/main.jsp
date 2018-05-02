@@ -7,6 +7,9 @@
 --%>
 <%@page import="java.sql.*"%>
 <%@page import="java.io.IOException"%>
+<%@ page import="java.util.ArrayList" %>
+<%@ page import="com.QueryPackage.results" %>
+
 <%-- <% Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver"); %> --%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 
@@ -24,7 +27,7 @@
     <link rel="icon" href="p4.jpg">
 
     <%
-        String queryInput = request.getParameter("SQuery");
+        String queryInput = request.getAttribute("queryTest").toString();
     %>
     <title><%= queryInput%> - Harry Potato Search</title>
 
@@ -34,19 +37,73 @@
 
 <header>
 
-    <p id="SEname">Harry Potato</p>
+    <a href="index.jsp" style="text-decoration: none"><p id="SEname">Harry Potato</p></a>
 
     <form method="GET" action="QueryX" name="form1">
 
-        <input type="text" name="SQuery" id="SQuery" size=100>
-        <input type="image" name="Lumos" alt="Lumos" src="ElderWand.png">
+        <input type="text" name="SQuery" id="SQuery" value=<%= queryInput%> size=100>
+        <input type="submit" name="Lumos" alt="Lumos">
+        <input type="hidden" name="formx" value="form1">
 
     </form>
 
 </header>
 
-<div id="main">
+<div id="main" style="margin: 2vw 40vw 0vw 10vw;">
 
+    <table>
+        <% ArrayList<results> info = (ArrayList<results>)request.getAttribute("linkInfo");
+            for (int i = 0; i < info.size(); i++) {
+                results infos = info.get(i); %>
+        <tr>
+            <td>
+                <h3 class="r" style="margin-bottom: 0px; font-size: 1.17em">
+                    <a href=<%out.print(infos.getURL());%>> <%out.print(infos.getTitle());%></a>
+                </h3>
+                <cite class="citeclass" style="font-size: 14px; color: #006621;"> <%out.print(infos.getURL());%></cite> <br>
+                <span class="st" style="margin-bottom: 20px"><%out.print(infos.getText());%></span> <br>
+            </td>
+        </tr>
+        <% } %>
+    </table>
+
+    <form method="GET" action="QueryX">
+        <input type="hidden" name="formx" value="form2">
+
+        <table border="0" cellpadding="5" cellspacing="5" style="display: inline">
+            <tr>
+        <% int pageNum = (int)request.getAttribute("noOfPages");
+            int currPage = (int)request.getAttribute("currentPage");
+
+            if (currPage == 1){%>
+        <%--For displaying Previous link except for the 1st page --%>
+            <td style="padding: 30.2px 17.6px 30.2px 17.6px"><input type="hidden" name="previous" src="Previous.png" width="25" height="25"></td>
+        <% }
+        else {%>
+        <td><input type="submit" name="previous" src="Previous.png" width="25" height="25" value="Previous"></td>
+        <% }
+
+        for (int i = 1; i <= pageNum; i++){
+            if (currPage == i){ %>
+                <td><input type="submit" name="page" src="blackdot.png" width="25" height="25" disabled
+                            value=<%out.print(i);%>></td>
+            <% }
+            else {%>
+                <td><input type="submit" name="page" src="reddot.png" width="25" height="25"
+                           value=<%out.print(i);%>></td>
+            <% }
+            }
+
+            if (currPage == pageNum){%>
+                <td style="padding: 30.2px 17.6px 30.2px 17.6px"><input type="hidden" name="next" src="next.png" width="25" height="25"></td>
+            <% }
+            else {%>
+                <td><input type="submit" name="next" src="next.png" width="25" height="25" value="Next"></td>
+            <% } %>
+            </tr>
+        </table>
+
+    </form>
 </div>
 
 </body>
