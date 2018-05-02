@@ -1,8 +1,8 @@
 import java.util.ArrayList;
+import java.util.Comparator;
 
 public class DocRank {
-
-	// public int ID;
+	public int ID;
 	public double rank;
 	public boolean valid;
 
